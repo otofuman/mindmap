@@ -10,6 +10,9 @@ pnpm add @xyflow/react @tanstack/react-table lucide-react dagre clsx tailwind-me
 pnpm add -D tailwindcss postcss autoprefixer @types/dagre
 pnpm add -D @tailwindcss/postcss
 pnpm add zustand
+pnpm add dagre
+pnpm add -D @types/dagre
+pnpm add @tanstack/react-table
 
 
 1. postcss.config.js を作成

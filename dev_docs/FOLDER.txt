@@ -1,22 +1,30 @@
 mindmap-app/
-├── .github/              # GitHub Actions設定（自動テスト・デプロイ用）
-├── public/               # 静的ファイル（ファビコンやアイコン画像）
-├── src/                  # アプリケーションの全ソースコード
-│   ├── assets/           # スタイルシートや画像
-│   ├── components/       # UIパーツ
-│   │   ├── canvas/       # マップ表示（React Flowキャンバス・ノード・エッジ）
-│   │   ├── table/        # 表表示（DataGrid・カスタムセル）
-│   │   ├── dialogs/      # ノード詳細編集や接続設定のモーダル
-│   │   └── ui/           # ボタンや入力枠などの共通部品（shadcn/ui）
-│   ├── types/            # TypeScript型定義（先ほど定義したJSON構造など）
-│   ├── store/            # 状態管理（Undo/Redo、temp_history、データ保持）
-│   ├── services/         # Google Drive API連携、エクスポート（Mermaid/PDF）
-│   ├── utils/            # ループ検出(DFS)、自動レイアウトなどの計算ロジック
-│   ├── App.tsx           # メイン画面コンポーネント
-│   └── main.tsx          # アプリのエントリポイント
-├── SPEC.txt              # 仕様書
-├── PLAN.txt              # 開発プラン
+├── public/               # 静的ファイル（ファビコン等）
+├── src/                  # ソースコード
+│   ├── components/       # UIコンポーネント
+│   │   ├── canvas/       # キャンバス関連（React Flow、カスタムノード）
+│   │   │   ├── MindMapCanvas.tsx  # マップ描画キャンバス本体
+│   │   │   └── MindMapNode.tsx    # 全方向接続対応カスタムノード
+│   │   └── grid/         # データグリッド（表表示）関連
+│   │       └── DataGrid.tsx       # Topics / Connections テーブルリアルタイム表示 (標準React/TS)
+│   ├── store/            # 状態管理
+│   │   └── useMindMapStore.ts  # Zustand状態管理 (キャンバス, データグリッド, Undo/Redo)
+│   ├── types/            # 型定義
+│   │   └── mindmap.ts    # 7テーブル構造データモデル定義 (`import type` 厳格運用)
+│   ├── utils/            # ユーティリティ
+│   │   └── layout.ts     # Dagreによる自動木構造レイアウト計算
+│   ├── App.tsx           # アプリケーション共通レイアウト
+│   ├── index.css         # Tailwind CSS統合・グローバルスタイル
+│   ├── main.tsx          # エントリポイント
+│   └── vite-env.d.ts     # Vite型定義
 ├── index.html            # HTMLテンプレート
-├── package.json          # 依存ライブラリの管理ファイル
+├── package.json          # 依存関係定義
+├── postcss.config.js     # PostCSS設定ファイル (Tailwind CSS v4連携)
 ├── tsconfig.json         # TypeScript設定ファイル
-└── vite.config.ts        # Vite（ビルドツール）設定ファイル
+├── tsconfig.app.json     # アプリ用TypeScript設定
+├── tsconfig.node.json    # Node用TypeScript設定
+├── vite.config.ts        # Vite設定ファイル
+├── FOLDER.txt            # ディレクトリ構成図
+├── README.md             # プロジェクト概要・セットアップガイド
+├── SPEC.txt              # システム基本仕様書
+└── MILESTONE.txt         # 開発フェーズと現在進捗サマリ

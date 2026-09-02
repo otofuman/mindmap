@@ -1,3 +1,21 @@
+
+
+/* キャンバス全体でポインターを読み取りやすく指定 */
+.react-flow__pane {
+  cursor: crosshair; /* 十字カーソル（精密に配置したい場合に最適） */
+}
+
+/* ノードの上にマウスを載せた時 */
+.react-flow__node {
+  cursor: grab !important;
+}
+
+/* ノードをドラッグ中の時 */
+.react-flow__node:active {
+  cursor: grabbing !important;
+}
+
+
 .counter {
   font-size: 16px;
   padding: 5px 10px;
