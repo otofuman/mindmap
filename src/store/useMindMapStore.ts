@@ -28,6 +28,10 @@ interface MindMapState {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+
+  loadDocument: (newDocument: MindMapDocument) => void;
+  updateTopic: (topicId: string, updates: Partial<Topic>) => void;
+  updateTopicDisplay: (topicId: string, updates: Partial<TopicDisplay>) => void;
 }
 
 const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -282,6 +286,45 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       future: newFuture,
       canUndo: true,
       canRedo: newFuture.length > 0,
+    });
+  },
+  
+  // ドキュメントの一括読み込み（インポート）
+  loadDocument: (newDocument: MindMapDocument) => {
+    set({
+      document: newDocument,
+      selectedNodeId: null,
+      past: [],
+      future: [],
+      canUndo: false,
+      canRedo: false,
+    });
+  },
+  // トピック基本情報の更新
+  updateTopic: (topicId: string, updates: Partial<Topic>) => {
+    set((state) => {
+      const newTopics = state.document.topics.map((t) =>
+        t.id === topicId ? { ...t, ...updates } : t
+      );
+      const newDocument = {
+        ...state.document,
+        topics: newTopics,
+      };
+      return pushHistory(state, newDocument);
+    });
+  },
+
+  // トピック描画スタイルの更新
+  updateTopicDisplay: (topicId: string, updates: Partial<TopicDisplay>) => {
+    set((state) => {
+      const newDisplays = state.document.topicDisplays.map((d) =>
+        d.topicId === topicId ? { ...d, ...updates } : d
+      );
+      const newDocument = {
+        ...state.document,
+        topicDisplays: newDisplays,
+      };
+      return pushHistory(state, newDocument);
     });
   },
 }));

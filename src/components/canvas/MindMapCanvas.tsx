@@ -14,6 +14,7 @@ import {
 import '@xyflow/react/dist/style.css';
 import { MindMapNode } from './MindMapNode';
 import { useMindMapStore } from '../../store/useMindMapStore';
+import type { MindMapDocument } from '../../types/mindmap';
 
 const nodeTypes = {
   mindMapNode: MindMapNode,
@@ -27,6 +28,7 @@ const MindMapCanvasContent: React.FC = () => {
   const addTopic = useMindMapStore((state) => state.addTopic);
   const connectTopics = useMindMapStore((state) => state.connectTopics);
   const applyAutoLayout = useMindMapStore((state) => state.applyAutoLayout);
+  const loadDocument = useMindMapStore((state) => state.loadDocument);
 
   const undo = useMindMapStore((state) => state.undo);
   const redo = useMindMapStore((state) => state.redo);
@@ -35,6 +37,7 @@ const MindMapCanvasContent: React.FC = () => {
 
   const { screenToFlowPosition, fitView } = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const nodes: Node[] = useMemo(() => {
     return document.topics.map((topic) => {
@@ -103,7 +106,47 @@ const MindMapCanvasContent: React.FC = () => {
     }, 50);
   }, [applyAutoLayout, fitView]);
 
-  // キーボードショートカット（Ctrl+Z, Ctrl+Y, Tab）
+// JSON エクスポート（保存）
+  const handleExportJSON = useCallback(() => {
+    const jsonString = JSON.stringify(document, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    // window.document を明示的に指定して DOM の a タグを生成
+    const a = window.document.createElement('a');
+    a.href = url;
+    a.download = `${document.meta.title || 'mindmap'}_${Date.now()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [document]);
+
+  // JSON インポート（読み込み）
+  const handleImportJSON = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target?.result as string) as MindMapDocument;
+          if (parsed.topics && parsed.connections && parsed.topicDisplays) {
+            loadDocument(parsed);
+            setTimeout(() => fitView({ duration: 300 }), 50);
+          } else {
+            alert('無効なマインドマップデータフォーマットです。');
+          }
+        } catch (err) {
+          alert('JSONファイルの読み込みに失敗しました。');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = ''; // リセット
+    },
+    [loadDocument, fitView]
+  );
+
+  // キーボードショートカット
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isCmdOrCtrl = e.metaKey || e.ctrlKey;
@@ -132,7 +175,34 @@ const MindMapCanvasContent: React.FC = () => {
     <div ref={reactFlowWrapper} className="w-full h-full relative focus:outline-none">
       {/* ツールバー */}
       <div className="absolute top-4 left-4 z-10 bg-white/90 backdrop-blur shadow-md border border-gray-200 rounded-lg p-2 flex gap-2 items-center">
-        {/* Undo / Redo ボタン */}
+        {/* ファイル入出力 */}
+        <div className="flex gap-1">
+          <button
+            onClick={handleExportJSON}
+            className="px-2 py-1 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-700 text-white transition"
+            title="JSON形式で保存"
+          >
+            💾 エクスポート
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="px-2 py-1 text-xs font-semibold rounded bg-amber-600 hover:bg-amber-700 text-white transition"
+            title="JSONファイルを読み込み"
+          >
+            📂 インポート
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleImportJSON}
+            className="hidden"
+          />
+        </div>
+
+        <div className="w-[1px] h-4 bg-gray-300 mx-1" />
+
+        {/* Undo / Redo */}
         <div className="flex gap-1">
           <button
             onClick={undo}
@@ -171,7 +241,7 @@ const MindMapCanvasContent: React.FC = () => {
               onClick={() => addChildNode(selectedNode.id)}
               className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-3 py-1.5 rounded transition"
             >
-              + 子ノードを追加 (Tab)
+              + 子ノードを追加
             </button>
             <div className="w-[1px] h-4 bg-gray-300 mx-1" />
           </>

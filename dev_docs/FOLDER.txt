@@ -3,17 +3,19 @@ mindmap-app/
 ├── src/                  # ソースコード
 │   ├── components/       # UIコンポーネント
 │   │   ├── canvas/       # キャンバス関連（React Flow、カスタムノード）
-│   │   │   ├── MindMapCanvas.tsx  # マップ描画キャンバス本体
+│   │   │   ├── MindMapCanvas.tsx  # マップ描画キャンバス本体（JSON I/O, ツールバー）
 │   │   │   └── MindMapNode.tsx    # 全方向接続対応カスタムノード
-│   │   └── grid/         # データグリッド（表表示）関連
-│   │       └── DataGrid.tsx       # Topics / Connections テーブルリアルタイム表示 (標準React/TS)
+│   │   ├── grid/         # データグリッド関連
+│   │   │   └── DataGrid.tsx       # Topics / Connections テーブルリアルタイム表示
+│   │   └── sidebar/      # ノード属性編集パネル
+│   │       └── Sidebar.tsx        # 選択ノードの属性・スタイルリアルタイム編集UI
 │   ├── store/            # 状態管理
-│   │   └── useMindMapStore.ts  # Zustand状態管理 (キャンバス, データグリッド, Undo/Redo)
+│   │   └── useMindMapStore.ts  # Zustand状態管理 (キャンバス, データグリッド, Undo/Redo, JSON一括読み込み)
 │   ├── types/            # 型定義
 │   │   └── mindmap.ts    # 7テーブル構造データモデル定義 (`import type` 厳格運用)
 │   ├── utils/            # ユーティリティ
 │   │   └── layout.ts     # Dagreによる自動木構造レイアウト計算
-│   ├── App.tsx           # アプリケーション共通レイアウト
+│   ├── App.tsx           # アプリケーション共通レイアウト (キャンバス + サイドバー + データグリッド)
 │   ├── index.css         # Tailwind CSS統合・グローバルスタイル
 │   ├── main.tsx          # エントリポイント
 │   └── vite-env.d.ts     # Vite型定義
