@@ -1,0 +1,33 @@
+0.pnpm
+npm install -g pnpm
+
+2.既存の空フォルダ内で Vite を初期化します。
+pnpm create vite . --template react-ts
+
+3.追加ライブラリのインストール
+
+pnpm add @xyflow/react @tanstack/react-table lucide-react dagre clsx tailwind-merge
+pnpm add -D tailwindcss postcss autoprefixer @types/dagre
+pnpm add -D @tailwindcss/postcss
+
+
+1. postcss.config.js を作成
+プロジェクトの直下（package.json と同じ場所）に postcss.config.js という名前でファイルを作成し、以下のコードを貼り付けて保存してください。
+
+JavaScript
+export default {
+  plugins: {
+    '@tailwindcss/postcss': {},
+  },
+}
+2. src/index.css の編集
+src/index.css（または src/App.css）の先頭に以下の1行を追加します。
+
+CSS
+@import "tailwindcss";
+
+
+
+
+6.動作確認（開発サーバー起動）を行います。
+pnpm dev
