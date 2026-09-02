@@ -9,6 +9,7 @@ pnpm create vite . --template react-ts
 pnpm add @xyflow/react @tanstack/react-table lucide-react dagre clsx tailwind-merge
 pnpm add -D tailwindcss postcss autoprefixer @types/dagre
 pnpm add -D @tailwindcss/postcss
+pnpm add zustand
 
 
 1. postcss.config.js を作成

@@ -5,88 +5,91 @@
 1. システム概要
 --------------------------------------------------------------------------------
 本システムは、リレーショナルデータベース（RDB）構造をベースとした高度なビジュアル思考
-およびナレッジ管理を行うためのWebアプリケーション（SPA）である。
+およびナレッジ管理を行うためのWebアプリケーション（SPA）である[cite: 2]。
 ユーザー所有の Google Drive をデータストレージとし、PCおよびスマートフォンブラウザからの
-利用に対応するバックエンドレス（Client-Side Only）構成をとる。
+利用に対応するバックエンドレス（Client-Side Only）構成をとる[cite: 2]。
 
 2. 動作環境 (Execution / Target Environment)
 --------------------------------------------------------------------------------
 【クライアント環境】
 ・対応OS:
-  - Windows 10 / 11
-  - macOS (Monterey 以降)
-  - iOS / iPadOS (16 以降)
-  - Android (12 以降)
+  - Windows 10 / 11[cite: 2]
+  - macOS (Monterey 以降)[cite: 2]
+  - iOS / iPadOS (16 以降)[cite: 2]
+  - Android (12 以降)[cite: 2]
 ・推奨ブラウザ (いずれも最新版推奨):
-  - Google Chrome
-  - Microsoft Edge
-  - Apple Safari
-  - Mozilla Firefox
+  - Google Chrome[cite: 2]
+  - Microsoft Edge[cite: 2]
+  - Apple Safari[cite: 2]
+  - Mozilla Firefox[cite: 2]
 ・画面解像度:
-  - PC: 1280×720 以上推奨
-  - モバイル: 375px 以上（レスポンシブWebデザイン対応）
+  - PC: 1280×720 以上推奨[cite: 2]
+  - モバイル: 375px 以上（レスポンシブWebデザイン対応）[cite: 2]
 ・ネットワーク・外部サービス依存:
-  - インターネット接続必須 (Google Drive API / Google OAuth 2.0 認証用)
+  - インターネット接続必須 (Google Drive API / Google OAuth 2.0 認証用)[cite: 2]
 
 3. 開発環境 (Development Environment)
 --------------------------------------------------------------------------------
 【基本スタック】
-・言語/ランタイム: TypeScript 5.x / Node.js 20.x LTS (または 22.x LTS)
-・パッケージマネージャ: pnpm (または npm / yarn)
-・ビルドツール / Webサーバー: Vite 5.x
+・言語/ランタイム: TypeScript 5.x / Node.js 20.x LTS (または 22.x / 24.x LTS)[cite: 2]
+・パッケージマネージャ: pnpm[cite: 2]
+・ビルドツール / Webサーバー: Vite 8.x[cite: 2]
 
 【主要ライブラリ・フレームワーク選定】
-・UIフレームワーク: React 18.x
-・キャンバス描画 (マップ表示): React Flow v11.x (または Cytoscape.js)
-  - 無限キャンバス、ドラッグ＆ドロップ、ノードハンドル、ズーム/パン
-・データグリッド (表表示): TanStack Table v8.x
-  - 動的カラム、カスタムセルのレンダリング
-・CSS/UIコンポーネント: Tailwind CSS v3.x + shadcn/ui (または MUI v5)
-  - モバイル/PC共通のレスポンシブデザイン
-・自動レイアウトエンジン: Dagre.js / ELK.js (Eclipse Layout Kernel)
-  - マップ自動並べ替え、ツリー/クラスタリング配置
+・UIフレームワーク: React 18.x[cite: 2]
+・キャンバス描画 (マップ表示): @xyflow/react 12.x[cite: 2]
+  - 無限キャンバス、ドラッグ＆ドロップ、ポータル点非依存のダイナミック接続、ズーム/パン
+・データグリッド (表表示): TanStack Table v8.x[cite: 2]
+  - 動的カラム、カスタムセルのレンダリング[cite: 2]
+・CSS/UIコンポーネント: Tailwind CSS v4 (@tailwindcss/postcss) + shadcn/ui (または MUI v5)[cite: 2]
+  - モバイル/PC共通のレスポンシブデザイン[cite: 2]
+・自動レイアウトエンジン: Dagre.js / ELK.js (Eclipse Layout Kernel)[cite: 2]
+  - マップ自動並べ替え、ツリー/クラスタリング配置[cite: 2]
 ・データ処理 / アルゴリズム:
-  - ループ検出: DFS (深さ優先探索) / Tarjan's Algorithm
-  - Mermaid出力: custom Mermaid CLI/generator
-  - PDF出力: html2canvas + jspdf (または WeasyPrint 変換モジュール)
+  - ループ検出: DFS (深さ優先探索) / Tarjan's Algorithm[cite: 2]
+  - Mermaid出力: custom Mermaid CLI/generator[cite: 2]
+  - PDF出力: html2canvas + jspdf (または WeasyPrint 変換モジュール)[cite: 2]
 
 4. データアーキテクチャ & ストレージ
 --------------------------------------------------------------------------------
 【ストレージ構成】
-・完全クライアントサイド実行 (Serverless / Static Web App)
-・保存形式: Google Drive API v3 を利用した JSON ファイル (.mmap.json)
+・完全クライアントサイド実行 (Serverless / Static Web App)[cite: 2]
+・保存形式: Google Drive API v3 を利用した JSON ファイル (.mmap.json)[cite: 2]
 
 【テーブル構成 (データモデル)】
- 1) topic (トピックデータ + ユーザー定義動的カラム)
- 2) connection (接続データ + ユーザー定義動的カラム)
- 3) topic_display (ノード表示特性: 形状, 位置, サイズ, 背景色, 文字色) ※履歴除外
- 4) connection_display (接続表示特性: スタイル, 色, 太さ) ※履歴除外
- 5) history (永続変更履歴: 作成, 削除, 変更ログ)
- 6) temp_history (Undo/Redo用ローカル一時履歴: 全変更を保持)
- 7+) custom_lists (リスト型・ツリー構造マイルストーン用マスター定義)
+ 1) topic (トピックデータ + ユーザー定義動的カラム)[cite: 2]
+ 2) connection (接続データ + ユーザー定義動的カラム)[cite: 2]
+ 3) topic_display (ノード表示特性: 形状, 位置, サイズ, 背景色, 文字色) ※履歴除外[cite: 2]
+ 4) connection_display (接続表示特性: スタイル, 色, 太さ) ※履歴除外[cite: 2]
+ 5) history (永続変更履歴: 作成, 削除, 変更ログ)[cite: 2]
+ 6) temp_history (Undo/Redo用ローカル一時履歴: 全変更を保持)[cite: 2]
+ 7+) custom_lists (リスト型・ツリー構造マイルストーン用マスター定義)[cite: 2]
 
 【動的列タイプ】
- ・テキスト / 数値 / 人 / カレンダー / リスト / マイルストーン (WBS階層ツリー)
+ ・テキスト / 数値 / 人 / カレンダー / リスト / マイルストーン (WBS階層ツリー)[cite: 2]
 
 5. 主要機能要求仕様
 --------------------------------------------------------------------------------
-・Google Drive 連携: 新規作成、保存、別名保存、削除
-・ビジュアル＆テーブル相互同期: マップ表示 ⇔ 表表示
+・Google Drive 連携: 新規作成、保存、別名保存、削除[cite: 2]
+・ビジュアル＆テーブル相互同期: マップ表示 ⇔ 表表示[cite: 2]
 ・ノード操作:
-  - 単一クリックでノード追加（タイトル必須）
-  - 無限キャンバスおよび移動ハンドルでの配置調整
-  - 単一クリック → 「...」で詳細編集
-  - 経由点 (Waypoint) の追加・移動
+  - ダブルクリックによる新規独立トピックの生成
+  - 選択中ノードからの「子ノード生成」（UIボタン または Tabキー操作）
+  - 単一クリックでタイトル編集、単一クリック → 「...」で詳細編集[cite: 2]
+  - 無限キャンバスおよび移動ハンドルでの配置調整[cite: 2]
+  - 選択ノードの削除（Delete / Backspaceキー操作）
+  - 経由点 (Waypoint) の追加・移動[cite: 2]
 ・接続操作:
-  - ノード連続クリックでの接続作成
-  - 接続クリック → メニューから削除 / 経由点化 / 線スタイル変更（直線・カギ線・曲線）
-  - 接続のハイライト表示（選択ノードから伸びる線）
+  - ノード表面全体からのクリック＆ドラッグによるダイナミックライン生成
+  - ノード連続クリックでの接続作成[cite: 2]
+  - 接続クリック → メニューから削除 / 経由点化 / 線スタイル変更（直線・カギ線・曲線）[cite: 2]
+  - 接続のハイライト表示（選択ノードから伸びる線）[cite: 2]
 ・履歴管理:
-  - Undo/Redo (temp_history)
-  - 保存時に差分整理を行って永続ログ (history) に記録
+  - Undo/Redo (temp_history)[cite: 2]
+  - 保存時に差分整理を行って永続ログ (history) に記録[cite: 2]
 ・自動並べ替え・解析:
-  - 完全自動レイアウト / カレンダー・マイルストーン別並べ替え / 人・リスト別グループ化
-  - 閉路 (ループ) 検出アラート機能
-・エクスポート: Mermaid形式 (.mmd / .md) および PDF出力 (.pdf)
+  - 完全自動レイアウト (Dagre) / カレンダー・マイルストーン別並べ替え / 人・リスト別グループ化[cite: 2]
+  - 閉路 (ループ) 検出アラート機能[cite: 2]
+・エクスポート: Mermaid形式 (.mmd / .md) および PDF出力 (.pdf)[cite: 2]
 
 ================================================================================

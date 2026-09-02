@@ -1,75 +1,24 @@
-# React + TypeScript + Vite
+# Webベース マインドマップ & ナレッジ管理ツール
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Google Drive をストレージとして活用し、リレーショナルデータ構造（7テーブルモデル）に基づいたビジュアル思考およびナレッジ管理を行うクライアントサイドWebアプリケーション。
 
-Currently, two official plugins are available:
+## 主な特徴
+- **無限キャンバス**: React Flow（@xyflow/react）を用いた直感的なノード・エッジ操作
+- **ダイナミック接続**: 固定の接続点に縛られないノード間の自由な接続ライン構築
+- **マルチビュー統合**: マップ表示とデータグリッド（表表示）の相互同期（予定）
+- **プライバシー＆ローカルファースト**: サーバレス構造で Google Drive API によるローカル/クラウド管理
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## テクノロジースタック
+- **フロントエンド**: React 18, TypeScript, Vite
+- **キャンバスエンジン**: @xyflow/react
+- **スタイリング**: Tailwind CSS v4, @tailwindcss/postcss
+- **パッケージマネージャー**: pnpm
 
-## React Compiler
+## 起動手順
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+# 依存関係のインストール
+pnpm install
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
-
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
+# 開発サーバーの起動
+pnpm dev

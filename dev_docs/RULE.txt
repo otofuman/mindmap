@@ -1,6 +1,12 @@
-開発時にはPLAN.txt、RULE.txt、SPEC.txt、report_uuuuMMddHHmmss.txtを読むこと
+開発時にはPLAN.txt、RULE.txt、FOLDER.txt、ENV.txt、SPEC.txt、report_uuuuMMddHHmmss.txt、README.md、MILESTONE.txtを読むこと
 
 「レポートして」と言ったら、今日の日付を冒頭に含む、開発の進捗報告 report_uuuuMMddHHmmss.txt を出力すること
 ここには、やったこと、できたこと、できなかったこと、とりあえずで仮置きしたが再検討が必要なこと、できたが条件があること、つぎやるべきこと、を記録する。齟齬がないようにできるだけ厳密に。
 
+「文書を更新して」と言ったら、最新の
+・FOLDER.txt・・・フォルダ構造
+・README.md
+・SPEC.txt
+・MILESTONE.txt・・・開発の全体像と現時点の進捗のサマリ
+を出力すること
 
