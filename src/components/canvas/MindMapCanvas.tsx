@@ -61,7 +61,7 @@ const MindMapCanvasContent: React.FC = () => {
 
   // ノードのドラッグが終了した時の処理
   const onNodeDragStop = useCallback(
-    (event: React.MouseEvent | React.TouchEvent, node: Node) => {
+    (event: any, node: Node) => {
       if (!trashRef.current) return;
 
       // イベントからカーソル/指の最終位置を取得
@@ -425,7 +425,7 @@ const MindMapCanvasContent: React.FC = () => {
         <MiniMap className="hidden md:block" />
         <Background gap={16} size={1} />
       </ReactFlow>
-      
+
       {/* 画面下部のゴミ箱エリア */}
       <div
         ref={trashRef}

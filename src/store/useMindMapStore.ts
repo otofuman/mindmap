@@ -3,11 +3,12 @@ import type {
   Topic,
   Connection,
   TopicDisplay,
+  ConnectionDisplay,
   MindMapDocument,
+  ConnectionType
 } from '../types/mindmap';
 import { type NodeChange, type EdgeChange } from '@xyflow/react';
 import { getLayoutedElements } from '../utils/layout';
-import type { ConnectionType } from '../types/mindmap';
 
 interface MindMapState {
   document: MindMapDocument;
@@ -229,19 +230,60 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   },
 
   connectTopics: (sourceId: string, targetId: string) => {
-    const newConnection: Connection = {
-      id: generateId(),
+    if (sourceId === targetId) return; // 自分自身への接続は無視
+
+    const { document } = get();
+
+    // 既に全く同じ向きの接続が存在する場合は無視（登録しない・警告なし）
+    const existingSame = document.connections.find(
+      (c) => c.sourceTopicId === sourceId && c.targetTopicId === targetId
+    );
+    if (existingSame) return;
+
+    // 逆向きの接続が既に存在する場合
+    const existingReverse = document.connections.find(
+      (c) => c.sourceTopicId === targetId && c.targetTopicId === sourceId
+    );
+
+    if (existingReverse) {
+      // 既存接続が 'bi_arrow' ならば既に双方向なので何もしない
+      if (existingReverse.type === 'bi_arrow') return;
+
+      // 既存の逆向き接続を 'bi_arrow' (双方向) に昇格更新
+      set((state) => {
+        const newConnections = state.document.connections.map((c) =>
+          c.id === existingReverse.id ? { ...c, type: 'bi_arrow' as ConnectionType } : c
+        );
+        const newDocument = { ...state.document, connections: newConnections };
+        return pushHistory(state, newDocument);
+      });
+      return;
+    }
+
+    // 新規接続作成（基本設定: 'arrow' 正方向矢印）
+    const newConnectionId = `conn-${Date.now()}`;
+    const newConn: Connection = {
+      id: newConnectionId,
       sourceTopicId: sourceId,
       targetTopicId: targetId,
-      type: 'line',
+      type: 'arrow' as ConnectionType,
       memo: '',
       customValues: {},
+    };
+
+    const newConnDisplay: ConnectionDisplay = {
+      connectionId: newConnectionId,
+      style: 'solid',      // lineStyle ではなく style の場合
+      routing: 'straight',   // 必要に応じて適切なデフォルト値
+      color: '#475569',     // lineColor ではなく color の場合
+      strokeWidth: 2,       // 線の太さ
     };
 
     set((state) => {
       const newDocument = {
         ...state.document,
-        connections: [...state.document.connections, newConnection],
+        connections: [...state.document.connections, newConn],
+        connectionDisplays: [...state.document.connectionDisplays, newConnDisplay],
       };
       return pushHistory(state, newDocument);
     });
@@ -351,61 +393,6 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       const newDocument = {
         ...state.document,
         topicDisplays: newDisplays,
-      };
-      return pushHistory(state, newDocument);
-    });
-  },
-
-  connectTopics: (sourceId: string, targetId: string) => {
-    if (sourceId === targetId) return; // 自分自身への接続は無視
-
-    const { document } = get();
-
-    // 既に全く同じ向きの接続が存在する場合は無視（登録しない・警告なし）
-    const existingSame = document.connections.find(
-      (c) => c.sourceTopicId === sourceId && c.targetTopicId === targetId
-    );
-    if (existingSame) return;
-
-    // 逆向きの接続が既に存在する場合
-    const existingReverse = document.connections.find(
-      (c) => c.sourceTopicId === targetId && c.targetTopicId === sourceId
-    );
-
-    if (existingReverse) {
-      // 既存接続が 'bi_arrow' ならば既に双方向なので何もしない
-      if (existingReverse.type === 'bi_arrow') return;
-
-      // 既存の逆向き接続を 'bi_arrow' (双方向) に昇格更新
-      set((state) => {
-        const newConnections = state.document.connections.map((c) =>
-          c.id === existingReverse.id ? { ...c, type: 'bi_arrow' as ConnectionType } : c
-        );
-        const newDocument = { ...state.document, connections: newConnections };
-        return pushHistory(state, newDocument);
-      });
-      return;
-    }
-
-    // 新規接続作成（基本設定: 'arrow' 正方向矢印）
-    const newConnectionId = `conn-${Date.now()}`;
-    const newConn = {
-      id: newConnectionId,
-      sourceTopicId: sourceId,
-      targetTopicId: targetId,
-      type: 'arrow' as ConnectionType,
-    };
-    const newConnDisplay = {
-      connectionId: newConnectionId,
-      lineColor: '#475569',
-      lineStyle: 'solid' as const,
-    };
-
-    set((state) => {
-      const newDocument = {
-        ...state.document,
-        connections: [...state.document.connections, newConn],
-        connectionDisplays: [...state.document.connectionDisplays, newConnDisplay],
       };
       return pushHistory(state, newDocument);
     });
