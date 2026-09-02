@@ -31,8 +31,8 @@ export interface Connection {
   sourceTopicId: string;
   targetTopicId: string;
   type: ConnectionType;
-  memo: string;
-  customValues: Record<string, any>;
+  memo?: string;
+  customValues?: Record<string, any>;
 }
 
 // 3) トピック表示テーブル (永続履歴対象外)

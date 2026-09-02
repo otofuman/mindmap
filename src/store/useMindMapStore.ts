@@ -7,6 +7,7 @@ import type {
 } from '../types/mindmap';
 import { type NodeChange, type EdgeChange } from '@xyflow/react';
 import { getLayoutedElements } from '../utils/layout';
+import type { ConnectionType } from '../types/mindmap';
 
 interface MindMapState {
   document: MindMapDocument;
@@ -32,6 +33,13 @@ interface MindMapState {
   loadDocument: (newDocument: MindMapDocument) => void;
   updateTopic: (topicId: string, updates: Partial<Topic>) => void;
   updateTopicDisplay: (topicId: string, updates: Partial<TopicDisplay>) => void;
+  
+  connectingSourceId: string | null;
+  setConnectingSourceId: (id: string | null) => void;
+  handleNodeTapForConnect: (targetNodeId: string) => void;
+
+  updateConnectionType: (connectionId: string, type: ConnectionType) => void;
+  deleteConnection: (connectionId: string) => void;
 }
 
 const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -91,6 +99,26 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   future: [],
   canUndo: false,
   canRedo: false,
+  connectingSourceId: null,
+
+  setConnectingSourceId: (id: string | null) => set({ connectingSourceId: id }),
+
+  // ノードタップ時の接続ロジック
+  handleNodeTapForConnect: (targetNodeId: string) => {
+    const { connectingSourceId, connectTopics } = get();
+
+    if (!connectingSourceId) {
+      // 1回目のタップ: 接続元に指定
+      set({ connectingSourceId: targetNodeId });
+    } else if (connectingSourceId === targetNodeId) {
+      // 同じノードを再度タップ: キャンセル
+      set({ connectingSourceId: null });
+    } else {
+      // 2回目のタップ: 接続元と接続先をつなぐ
+      connectTopics(connectingSourceId, targetNodeId);
+      set({ connectingSourceId: null });
+    }
+  },
 
   onNodesChange: (changes: NodeChange[]) => {
     const selectChange = changes.find((c) => c.type === 'select');
@@ -323,6 +351,86 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       const newDocument = {
         ...state.document,
         topicDisplays: newDisplays,
+      };
+      return pushHistory(state, newDocument);
+    });
+  },
+
+  connectTopics: (sourceId: string, targetId: string) => {
+    if (sourceId === targetId) return; // 自分自身への接続は無視
+
+    const { document } = get();
+
+    // 既に全く同じ向きの接続が存在する場合は無視（登録しない・警告なし）
+    const existingSame = document.connections.find(
+      (c) => c.sourceTopicId === sourceId && c.targetTopicId === targetId
+    );
+    if (existingSame) return;
+
+    // 逆向きの接続が既に存在する場合
+    const existingReverse = document.connections.find(
+      (c) => c.sourceTopicId === targetId && c.targetTopicId === sourceId
+    );
+
+    if (existingReverse) {
+      // 既存接続が 'bi_arrow' ならば既に双方向なので何もしない
+      if (existingReverse.type === 'bi_arrow') return;
+
+      // 既存の逆向き接続を 'bi_arrow' (双方向) に昇格更新
+      set((state) => {
+        const newConnections = state.document.connections.map((c) =>
+          c.id === existingReverse.id ? { ...c, type: 'bi_arrow' as ConnectionType } : c
+        );
+        const newDocument = { ...state.document, connections: newConnections };
+        return pushHistory(state, newDocument);
+      });
+      return;
+    }
+
+    // 新規接続作成（基本設定: 'arrow' 正方向矢印）
+    const newConnectionId = `conn-${Date.now()}`;
+    const newConn = {
+      id: newConnectionId,
+      sourceTopicId: sourceId,
+      targetTopicId: targetId,
+      type: 'arrow' as ConnectionType,
+    };
+    const newConnDisplay = {
+      connectionId: newConnectionId,
+      lineColor: '#475569',
+      lineStyle: 'solid' as const,
+    };
+
+    set((state) => {
+      const newDocument = {
+        ...state.document,
+        connections: [...state.document.connections, newConn],
+        connectionDisplays: [...state.document.connectionDisplays, newConnDisplay],
+      };
+      return pushHistory(state, newDocument);
+    });
+  },
+
+  updateConnectionType: (connectionId: string, type: ConnectionType) => {
+    set((state) => {
+      const newConnections = state.document.connections.map((c) =>
+        c.id === connectionId ? { ...c, type } : c
+      );
+      const newDocument = { ...state.document, connections: newConnections };
+      return pushHistory(state, newDocument);
+    });
+  },
+
+  deleteConnection: (connectionId: string) => {
+    set((state) => {
+      const newConnections = state.document.connections.filter((c) => c.id !== connectionId);
+      const newDisplays = state.document.connectionDisplays.filter(
+        (d) => d.connectionId !== connectionId
+      );
+      const newDocument = {
+        ...state.document,
+        connections: newConnections,
+        connectionDisplays: newDisplays,
       };
       return pushHistory(state, newDocument);
     });

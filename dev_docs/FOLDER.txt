@@ -3,30 +3,30 @@ mindmap-app/
 ├── src/                  # ソースコード
 │   ├── components/       # UIコンポーネント
 │   │   ├── canvas/       # キャンバス関連（React Flow、カスタムノード）
-│   │   │   ├── MindMapCanvas.tsx  # マップ描画キャンバス本体（JSON I/O, ツールバー）
-│   │   │   └── MindMapNode.tsx    # 全方向接続対応カスタムノード
+│   │   │   ├── MindMapCanvas.tsx  # マップ描画キャンバス本体（ゴミ箱、ハンバーガーメニュー、JSON I/O）[cite: 2, 3]
+│   │   │   └── MindMapNode.tsx    # 全方向接続対応カスタムノード[cite: 1, 3]
 │   │   ├── grid/         # データグリッド関連
-│   │   │   └── DataGrid.tsx       # Topics / Connections テーブルリアルタイム表示
+│   │   │   └── DataGrid.tsx       # Topics / Connections テーブルリアルタイム表示[cite: 3]
 │   │   └── sidebar/      # ノード属性編集パネル
-│   │       └── Sidebar.tsx        # 選択ノードの属性・スタイルリアルタイム編集UI
+│   │       └── Sidebar.tsx        # 選択ノードの属性・スタイルリアルタイム編集UI[cite: 3]
 │   ├── store/            # 状態管理
-│   │   └── useMindMapStore.ts  # Zustand状態管理 (キャンバス, データグリッド, Undo/Redo, JSON一括読み込み)
+│   │   └── useMindMapStore.ts  # Zustand状態管理 (削除、Undo/Redo、JSON一括読み込み)[cite: 3]
 │   ├── types/            # 型定義
-│   │   └── mindmap.ts    # 7テーブル構造データモデル定義 (`import type` 厳格運用)
+│   │   └── mindmap.ts    # 7テーブル構造データモデル定義 (`import type` 厳格運用)[cite: 1, 3]
 │   ├── utils/            # ユーティリティ
-│   │   └── layout.ts     # Dagreによる自動木構造レイアウト計算
-│   ├── App.tsx           # アプリケーション共通レイアウト (キャンバス + サイドバー + データグリッド)
-│   ├── index.css         # Tailwind CSS統合・グローバルスタイル
-│   ├── main.tsx          # エントリポイント
-│   └── vite-env.d.ts     # Vite型定義
-├── index.html            # HTMLテンプレート
-├── package.json          # 依存関係定義
-├── postcss.config.js     # PostCSS設定ファイル (Tailwind CSS v4連携)
-├── tsconfig.json         # TypeScript設定ファイル
-├── tsconfig.app.json     # アプリ用TypeScript設定
-├── tsconfig.node.json    # Node用TypeScript設定
-├── vite.config.ts        # Vite設定ファイル
-├── FOLDER.txt            # ディレクトリ構成図
-├── README.md             # プロジェクト概要・セットアップガイド
-├── SPEC.txt              # システム基本仕様書
-└── MILESTONE.txt         # 開発フェーズと現在進捗サマリ
+│   │   └── layout.ts     # Dagreによる自動木構造レイアウト計算[cite: 3]
+│   ├── App.tsx           # アプリケーション共通レイアウト (キャンバス + サイドバー + データグリッド)[cite: 3]
+│   ├── index.css         # Tailwind CSS統合・グローバルスタイル[cite: 3]
+│   ├── main.tsx          # エントリポイント[cite: 3]
+│   └── vite-env.d.ts     # Vite型定義[cite: 3]
+├── index.html            # HTMLテンプレート[cite: 3]
+├── package.json          # 依存関係定義[cite: 3]
+├── postcss.config.js     # PostCSS設定ファイル (Tailwind CSS v4連携)[cite: 3]
+├── tsconfig.json         # TypeScript設定ファイル[cite: 3]
+├── tsconfig.app.json     # アプリ用TypeScript設定[cite: 3]
+├── tsconfig.node.json    # Node用TypeScript設定[cite: 3]
+├── vite.config.ts        # Vite設定ファイル[cite: 3]
+├── FOLDER.txt            # ディレクトリ構成図[cite: 3]
+├── README.md             # プロジェクト概要・セットアップガイド[cite: 6]
+├── SPEC.txt              # システム基本仕様書[cite: 5]
+└── MILESTONE.txt         # 開発フェーズと現在進捗サマリ[cite: 4]

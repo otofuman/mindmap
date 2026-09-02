@@ -5,37 +5,40 @@
 【1. アーキテクチャ概要】
 本システムは、マインドマップを「リレーショナルデータベース（7テーブル）」として定義・管理する。
 キャンバス上の視覚的変更、属性編集パネルでの入力、およびテーブル上のデータ操作は、すべて Zustand ストアを経由して
-単一の `MindMapDocument` 内の該当テーブルへリアルタイムに多方向反映される。
+単一の `MindMapDocument` 内の該当テーブルへリアルタイムに多方向反映される[cite: 5]。
 
 【2. データモデル仕様 (7テーブル構造)】
-1. DocumentMeta (ドキュメントメタ情報)
-2. SchemaConfig (カスタム列定義)
-3. Topic (トピック主データ: id, title, detailMemo, customValues)
-4. Connection (接続データ: id, sourceTopicId, targetTopicId, type, memo, customValues)
-5. TopicDisplay (トピック描画情報: topicId, shape, position, size, backgroundColor, textColor)
-6. ConnectionDisplay (接続描画情報: connectionId, lineColor, lineStyle)
-7. CustomListMaster (選択肢マスター)
+1. DocumentMeta (ドキュメントメタ情報)[cite: 5]
+2. SchemaConfig (カスタム列定義)[cite: 5]
+3. Topic (トピック主データ: id, title, detailMemo, customValues)[cite: 5]
+4. Connection (接続データ: id, sourceTopicId, targetTopicId, type, memo, customValues)[cite: 5]
+5. TopicDisplay (トピック描画情報: topicId, shape, position, size, backgroundColor, textColor)[cite: 5]
+6. ConnectionDisplay (接続描画情報: connectionId, lineColor, lineStyle)[cite: 5]
+7. CustomListMaster (選択肢マスター)[cite: 5]
 
-※ 型定義はすべて `src/types/mindmap.ts` で一元管理し、`import type` 構文を徹底する。
+※ 型定義はすべて `src/types/mindmap.ts` で一元管理し、`import type` 構文を徹底する[cite: 5]。
 
 【3. 実装済みコンポーネント仕様】
 ■ キャンバス (MindMapCanvas / MindMapNode)
-- ダブルクリックによるノード新規作成
-- ノード選択時の Tab キーによる子ノード追加
-- 全方向接続対応のダイナミック接続機能
-- Dagre アルゴリズムによる「自動整列 (LR/TB)」
-- キーボードショートカット (Ctrl+Z / Ctrl+Y) 対応
-- JSON ファイルのエクスポート (💾) およびインポート (📂) 機能
+- 背景長押し / 右クリックによるノード新規作成[cite: 2, 5]
+- 選択中ノードの二度クリックによる名前変更プロンプト起動
+- 画面下部ゴミ箱エリアへのドラッグ＆ドロップによるノード削除
+- 背景クリックによる選択解除
+- ノード選択時の Tab キーによる子ノード追加[cite: 5]
+- 全方向接続対応のダイナミック接続機能[cite: 1, 5]
+- Dagre アルゴリズムによる「自動整列 (LR/TB)」[cite: 3, 5]
+- キーボードショートカット (Ctrl+Z / Ctrl+Y) 対応[cite: 5]
+- JSON ファイルのエクスポート (💾) およびインポート (📂) 機能（モバイルはハンバーガーメニュー内に格納）[cite: 2, 3, 5]
 
 ■ データグリッド (DataGrid)
-- Vite v6 / Rolldown 環境との高い互換性を保証する軽量な標準 React/TS テーブル実装
-- Topics / Connections のタブ切り替え表示
-- キャンバスでのノード選択とテーブル行のリアルタイム連動ハイライト
-- テーブルからの行削除アクション
+- Vite v6 / Rolldown 環境との高い互換性を保証する軽量な標準 React/TS テーブル実装[cite: 5]
+- Topics / Connections のタブ切り替え表示[cite: 5]
+- キャンバスでのノード選択とテーブル行のリアルタイム連動ハイライト[cite: 5]
+- テーブルからの行削除アクション[cite: 5]
 
 ■ ノード属性編集パネル (Sidebar)
-- 選択ノードの `title`（タイトル）、`detailMemo`（詳細メモ）のリアルタイム編集
-- `backgroundColor`（背景色）、`textColor`（文字色）のカラーピッカー変更
+- 選択ノードの `title`（タイトル）、`detailMemo`（詳細メモ）のリアルタイム編集[cite: 5]
+- `backgroundColor`（背景色）、`textColor`（文字色）のカラーピッカー変更[cite: 5]
 
 ■ 履歴管理 (Undo / Redo)
-- `past` / `future` スナップショットスタックによるドキュメント状態追跡
+- `past` / `future` スナップショットスタックによるドキュメント状態追跡[cite: 5]
