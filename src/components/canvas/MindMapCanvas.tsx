@@ -17,6 +17,10 @@ import { CustomEdge } from './CustomEdge';
 import { useMindMapStore } from '../../store/useMindMapStore';
 import type { MindMapDocument } from '../../types/mindmap';
 
+// 別管理したモーダルをインポート
+import { EditNodeModal } from '../modals/EditNodeModal';
+import { StyleNodeModal } from '../modals/StyleNodeModal';
+
 const nodeTypes = {
   mindMapNode: MindMapNode,
 };
@@ -26,11 +30,12 @@ const edgeTypes = {
 };
 
 const MindMapCanvasContent: React.FC = () => {
-  const document = useMindMapStore((state) => state.document);
+  const mapDocument = useMindMapStore((state) => state.document);
   const selectedNodeId = useMindMapStore((state) => state.selectedNodeId);
   const connectingSourceId = useMindMapStore((state) => state.connectingSourceId);
   const setConnectingSourceId = useMindMapStore((state) => state.setConnectingSourceId);
   const handleNodeTapForConnect = useMindMapStore((state) => state.handleNodeTapForConnect);
+  const updateTopic = useMindMapStore((state) => state.updateTopic);
 
   const onNodesChange = useMindMapStore((state) => state.onNodesChange);
   const onEdgesChange = useMindMapStore((state) => state.onEdgesChange);
@@ -41,85 +46,76 @@ const MindMapCanvasContent: React.FC = () => {
 
   const undo = useMindMapStore((state) => state.undo);
   const redo = useMindMapStore((state) => state.redo);
-  const canUndo = useMindMapStore((state) => state.canUndo);
-  const canRedo = useMindMapStore((state) => state.canRedo);
-
-  // deleteTopic がストアにあると仮定
   const deleteTopic = useMindMapStore((state) => (state as any).deleteTopic);
 
   const { screenToFlowPosition, fitView } = useReactFlow();
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // モバイル用ハンバーガーメニューの開閉状態
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [nodeMenuTarget, setNodeMenuTarget] = useState<{ id: string; x: number; y: number } | null>(null);
 
-  // ゴミ箱のDOM参照
-  const trashRef = useRef<HTMLDivElement>(null);
-  // ドラッグ中かどうか（ゴミ箱をハイライトさせるためなど）
-  const [isDraggingOverTrash, setIsDraggingOverTrash] = useState(false);
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+  const [stylingNodeId, setStylingNodeId] = useState<string | null>(null);
 
-  // ノードのドラッグが終了した時の処理
-  const onNodeDragStop = useCallback(
-    (event: any, node: Node) => {
-      if (!trashRef.current) return;
-
-      // イベントからカーソル/指の最終位置を取得
-      let clientX = 0;
-      let clientY = 0;
-      if ('clientX' in event) {
-        clientX = event.clientX;
-        clientY = event.clientY;
-      } else if ('touches' in event && event.touches.length > 0) {
-        clientX = event.touches[0].clientX;
-        clientY = event.touches[0].clientY;
-      }
-
-      // ゴミ箱の画面上の位置・サイズを取得
-      const trashRect = trashRef.current.getBoundingClientRect();
-
-      // ドロップ位置がゴミ箱の矩形内に入っているか判定
-      const isOverTrash =
-        clientX >= trashRect.left &&
-        clientX <= trashRect.right &&
-        clientY >= trashRect.top &&
-        clientY <= trashRect.bottom;
-
-      if (isOverTrash) {
-        if (deleteTopic) {
-          deleteTopic(node.id);
-        } else {
-          console.warn('deleteTopic がストアに定義されていません');
+  const handleTitleClick = useCallback(() => {
+    const currentTitle = mapDocument.meta.title || 'マインドマップ';
+    const newTitle = window.prompt('マインドマップ名を入力:', currentTitle);
+    if (newTitle !== null) {
+      useMindMapStore.setState((state) => ({
+        document: {
+          ...state.document,
+          meta: { ...state.document.meta, title: newTitle.trim() || 'マインドマップ' }
         }
-      }
+      }));
+    }
+  }, [mapDocument.meta.title]);
 
-      setIsDraggingOverTrash(false);
-    },
-    [deleteTopic]
-  );
-
-  // ノードクリック時の処理（接続モード or 選択ノードの再クリックで名前変更）
   const onNodeClick = useCallback(
-    (_: React.MouseEvent, node: Node) => {
+    (event: React.MouseEvent, node: Node) => {
       if (connectingSourceId) {
         handleNodeTapForConnect(node.id);
+        setNodeMenuTarget(null);
         return;
       }
 
-      if (node.id === selectedNodeId) {
-        const currentTitle = node.data.label as string;
-        const newTitle = window.prompt('トピック名を編集:', currentTitle);
-        if (newTitle !== null && newTitle.trim() !== '') {
-          useMindMapStore.getState().updateTopic(node.id, { title: newTitle.trim() });
+      if (isSelectionMode) {
+        useMindMapStore.setState({ selectedNodeId: node.id });
+        return;
+      }
+
+      const isAlreadySelected = selectedNodeId === node.id;
+      useMindMapStore.setState({ selectedNodeId: node.id });
+
+      const wrapperBounds = reactFlowWrapper.current?.getBoundingClientRect();
+      if (wrapperBounds) {
+        const x = event.clientX - wrapperBounds.left + 15;
+        const y = event.clientY - wrapperBounds.top - 20;
+
+        setNodeMenuTarget({
+          id: node.id,
+          x,
+          y,
+        });
+      }
+
+      if (isAlreadySelected) {
+        const topic = mapDocument.topics.find((t) => t.id === node.id);
+        if (topic) {
+          const newTitle = window.prompt('ノードの新しい名前を入力:', topic.title);
+          if (newTitle !== null && newTitle.trim() !== '') {
+            updateTopic(topic.id, { title: newTitle.trim() });
+          }
         }
       }
     },
-    [connectingSourceId, handleNodeTapForConnect, selectedNodeId]
+    [connectingSourceId, handleNodeTapForConnect, isSelectionMode, selectedNodeId, mapDocument, updateTopic]
   );
 
   const nodes: Node[] = useMemo(() => {
-    return document.topics.map((topic) => {
-      const display = document.topicDisplays.find((d) => d.topicId === topic.id);
+    return mapDocument.topics.map((topic) => {
+      const display = mapDocument.topicDisplays.find((d) => d.topicId === topic.id);
       const isConnectingSource = topic.id === connectingSourceId;
 
       return {
@@ -128,14 +124,14 @@ const MindMapCanvasContent: React.FC = () => {
         position: display ? display.position : { x: 0, y: 0 },
         selected: topic.id === selectedNodeId || isConnectingSource,
         data: { label: topic.title, topic },
+        draggable: !isSelectionMode,
       };
     });
-  }, [document.topics, document.topicDisplays, selectedNodeId, connectingSourceId]);
+  }, [mapDocument.topics, mapDocument.topicDisplays, selectedNodeId, connectingSourceId, isSelectionMode]);
 
   const edges: Edge[] = useMemo(() => {
-    return document.connections.map((conn) => {
+    return mapDocument.connections.map((conn) => {
       const type = conn.type || 'arrow';
-
       return {
         id: conn.id,
         source: conn.sourceTopicId,
@@ -143,11 +139,9 @@ const MindMapCanvasContent: React.FC = () => {
         type: 'customEdge',
         data: { type },
         style: { stroke: '#64748b', strokeWidth: 2 },
-        markerStart: undefined,
-        markerEnd: undefined,
       };
     });
-  }, [document.connections]);
+  }, [mapDocument.connections]);
 
   const onConnect: OnConnect = useCallback(
     (params: Connection) => {
@@ -158,7 +152,6 @@ const MindMapCanvasContent: React.FC = () => {
     [connectTopics]
   );
 
-  // 背景クリック時（選択解除）
   const onPaneClick = useCallback(
     (event: React.MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -168,15 +161,16 @@ const MindMapCanvasContent: React.FC = () => {
       ) {
         useMindMapStore.setState({ selectedNodeId: null, connectingSourceId: null });
         setMobileMenuOpen(false);
+        setNodeMenuTarget(null);
       }
     },
     []
   );
 
-  // 背景長押し / 右クリック（新しいトピック追加）
   const onPaneContextMenu = useCallback(
     (event: React.MouseEvent | MouseEvent | TouchEvent) => {
       event.preventDefault();
+      if (isSelectionMode) return;
       let clientX = 0;
       let clientY = 0;
 
@@ -191,23 +185,23 @@ const MindMapCanvasContent: React.FC = () => {
       });
       addTopic('新しいトピック', position);
     },
-    [screenToFlowPosition, addTopic]
+    [screenToFlowPosition, addTopic, isSelectionMode]
   );
 
-  const addChildNode = useCallback(
-    (parentNodeId: string) => {
-      const parentNode = nodes.find((n) => n.id === parentNodeId);
-      if (!parentNode) return;
-
-      const childPosition = {
-        x: parentNode.position.x + 220,
-        y: parentNode.position.y + (Math.random() * 80 - 40),
-      };
-
-      addTopic('サブトピック', childPosition, parentNodeId);
-    },
-    [nodes, addTopic]
-  );
+  const handleAddAction = useCallback(() => {
+    if (selectedNodeId) {
+      const parentNode = nodes.find((n) => n.id === selectedNodeId);
+      if (parentNode) {
+        const childPosition = {
+          x: parentNode.position.x + 220,
+          y: parentNode.position.y + (Math.random() * 80 - 40),
+        };
+        addTopic('サブトピック', childPosition, selectedNodeId);
+        return;
+      }
+    }
+    addTopic('新しいトピック', { x: 100, y: 100 });
+  }, [selectedNodeId, nodes, addTopic]);
 
   const handleAutoLayout = useCallback(() => {
     applyAutoLayout('LR');
@@ -215,16 +209,23 @@ const MindMapCanvasContent: React.FC = () => {
   }, [applyAutoLayout, fitView]);
 
   const handleExportJSON = useCallback(() => {
-    const jsonString = JSON.stringify(document, null, 2);
+    const currentMapTitle = mapDocument.meta.title || 'mindmap';
+    const inputFileName = window.prompt('保存するファイル名を入力してください:', currentMapTitle);
+    if (inputFileName === null) return;
+
+    const sanitizedTitle = inputFileName.trim() || currentMapTitle;
+    const fileName = sanitizedTitle.endsWith('.json') ? sanitizedTitle : `${sanitizedTitle}.json`;
+
+    const jsonString = JSON.stringify(mapDocument, null, 2);
     const blob = new Blob([jsonString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = window.document.createElement('a');
     a.href = url;
-    a.download = `${document.meta.title || 'mindmap'}_${Date.now()}.json`;
+    a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
     setMobileMenuOpen(false);
-  }, [document]);
+  }, [mapDocument]);
 
   const handleImportJSON = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -272,13 +273,10 @@ const MindMapCanvasContent: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [undo, redo]);
 
-  const selectedNode = nodes.find((n) => n.selected);
-
   return (
     <div ref={reactFlowWrapper} className="w-full h-full relative focus:outline-none">
-      {/* 接続ガイド通知メッセージ */}
       {connectingSourceId && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 bg-blue-600 text-white text-xs px-4 py-2 rounded-full shadow-lg font-bold flex items-center gap-2 animate-bounce">
+        <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[100] bg-blue-600 text-white text-xs px-4 py-2 rounded-full shadow-lg font-bold flex items-center gap-2 animate-bounce pointer-events-auto">
           <span>🔗 接続先のノードをタップしてください</span>
           <button
             onClick={() => setConnectingSourceId(null)}
@@ -290,117 +288,182 @@ const MindMapCanvasContent: React.FC = () => {
       )}
 
       {/* 上部ツールバー */}
-      <div className="absolute top-2 left-2 right-2 md:right-auto z-10 bg-white/95 backdrop-blur shadow-md border border-gray-200 rounded-lg p-2 flex gap-2 items-center overflow-x-auto max-w-full">
-        {/* Undo / Redo */}
-        <div className="flex gap-1 shrink-0">
-          <button
-            onClick={undo}
-            disabled={!canUndo}
-            className={`px-2 py-1 text-xs font-semibold rounded border whitespace-nowrap transition ${
-              canUndo
-                ? 'bg-white hover:bg-gray-100 text-gray-700 border-gray-300'
-                : 'bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed'
-            }`}
-          >
-            ↩ 戻す
-          </button>
-          <button
-            onClick={redo}
-            disabled={!canRedo}
-            className={`px-2 py-1 text-xs font-semibold rounded border whitespace-nowrap transition ${
-              canRedo
-                ? 'bg-white hover:bg-gray-100 text-gray-700 border-gray-300'
-                : 'bg-gray-100 text-gray-300 border-gray-200 cursor-not-allowed'
-            }`}
-          >
-            ↪ 進む
-          </button>
-        </div>
-
-        <div className="w-[1px] h-4 bg-gray-300 shrink-0" />
-
-        {/* 整列 */}
-        <button
-          onClick={handleAutoLayout}
-          className="bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold px-2.5 py-1 rounded whitespace-nowrap transition shrink-0"
-        >
-          🪄 整列
-        </button>
-
-        {/* 選択中のノードに対するアクション */}
-        {selectedNode && (
-          <>
-            <div className="w-[1px] h-4 bg-gray-300 shrink-0" />
+      <div className="absolute top-3 left-3 right-3 z-50 flex flex-col gap-2 pointer-events-none max-w-xl mx-auto">
+        <div className="flex items-center justify-between bg-white/95 backdrop-blur px-3 py-2 rounded-xl shadow-md border border-gray-200 pointer-events-auto">
+          <div className="flex items-center gap-2 overflow-hidden">
             <button
-              onClick={() => addChildNode(selectedNode.id)}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-2.5 py-1 rounded whitespace-nowrap transition shrink-0"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-700 transition shrink-0"
+              title="メニュー"
             >
-              + 子ノード
+              <span className="text-base font-bold">☰</span>
+            </button>
+            <span
+              onClick={handleTitleClick}
+              className="font-bold text-gray-800 text-xs md:text-sm truncate cursor-pointer hover:text-blue-600 transition"
+              title="クリックして名前を変更"
+            >
+              {mapDocument.meta.title || 'マインドマップ'} ✏️
+            </span>
+          </div>
+
+          <div className="hidden md:flex gap-1">
+            <button
+              onClick={handleExportJSON}
+              className="px-2 py-1 text-xs rounded bg-emerald-600 hover:bg-emerald-700 text-white transition font-medium"
+            >
+              💾 保存
             </button>
             <button
-              onClick={() => handleNodeTapForConnect(selectedNode.id)}
-              className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold px-2.5 py-1 rounded whitespace-nowrap transition shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+              className="px-2 py-1 text-xs rounded bg-amber-600 hover:bg-amber-700 text-white transition font-medium"
             >
-              🔗 接続線をつなぐ
+              📂 開く
             </button>
-          </>
-        )}
-
-        <div className="w-[1px] h-4 bg-gray-300 shrink-0 hidden md:block" />
-
-        {/* PC用: 保存 / 開く */}
-        <div className="hidden md:flex gap-1 shrink-0">
-          <button
-            onClick={handleExportJSON}
-            className="px-2 py-1 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-700 text-white whitespace-nowrap transition"
-          >
-            💾 保存
-          </button>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="px-2 py-1 text-xs font-semibold rounded bg-amber-600 hover:bg-amber-700 text-white whitespace-nowrap transition"
-          >
-            📂 開く
-          </button>
+          </div>
         </div>
 
-        {/* モバイル用: ハンバーガーメニューボタン（アイコンのみツールバー内） */}
-        <div className="md:hidden shrink-0 ml-auto">
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-1.5 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded font-bold text-sm"
-          >
-            ☰
-          </button>
-        </div>
+        {/* 2段目ツールバー */}
+        <div className="flex items-center justify-between bg-white/95 backdrop-blur px-3 py-2 rounded-xl shadow-md border border-gray-200 pointer-events-auto">
+          <div className="flex items-center gap-1.5 md:gap-2 overflow-x-auto">
+            <button
+              onClick={handleAddAction}
+              disabled={isSelectionMode}
+              className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap transition shadow-sm flex items-center gap-1 ${
+                isSelectionMode ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'
+              }`}
+            >
+              <span>＋ ノード追加</span>
+            </button>
 
-        {/* 共通の隠しファイルインプット */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json"
-          onChange={handleImportJSON}
-          className="hidden"
-        />
+            {selectedNodeId && !isSelectionMode && (
+              <button
+                onClick={() => {
+                  handleNodeTapForConnect(selectedNodeId);
+                  setNodeMenuTarget(null);
+                }}
+                className="bg-purple-600 hover:bg-purple-700 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap transition shadow-sm flex items-center gap-1 animate-fadeIn"
+              >
+                <span>🔗 接続追加</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                setIsSelectionMode(!isSelectionMode);
+                setNodeMenuTarget(null);
+              }}
+              className={`text-xs font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap transition shadow-sm flex items-center gap-1 ${
+                isSelectionMode
+                  ? 'bg-amber-500 text-white ring-2 ring-amber-300'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+              }`}
+            >
+              <span>{isSelectionMode ? '🔍 選択モード中 (解除)' : '🔍 選択モード'}</span>
+            </button>
+
+            <button
+              onClick={handleAutoLayout}
+              className="bg-slate-700 hover:bg-slate-800 text-white text-xs font-semibold px-2.5 py-1.5 rounded-lg whitespace-nowrap transition shadow-sm flex items-center gap-1"
+            >
+              <span>⚡ 整列</span>
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* モバイル用ポップアップメニュー（ツールバーの外側に配置して確実に表示させる） */}
-      {mobileMenuOpen && (
-        <div className="absolute right-4 top-16 bg-white border border-gray-200 shadow-2xl rounded-lg p-2 flex flex-col gap-2 min-w-[140px] z-50 md:hidden">
+      {/* ノードの右隣に表示されるコンテキストメニュー (z-[100]) */}
+      {nodeMenuTarget && (
+        <div
+          style={{ top: nodeMenuTarget.y, left: nodeMenuTarget.x }}
+          className="absolute z-[100] bg-white border border-gray-200 shadow-2xl rounded-xl p-1.5 flex flex-col gap-1 min-w-[150px] pointer-events-auto animate-fadeIn"
+        >
+          <div className="text-[10px] text-gray-400 px-2 py-0.5 border-b font-medium">アクション選択</div>
+          
           <button
-            onClick={handleExportJSON}
-            className="w-full text-left px-3 py-1.5 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-700 text-white transition"
+            onClick={() => {
+              setEditingNodeId(nodeMenuTarget.id);
+              setNodeMenuTarget(null);
+            }}
+            className="w-full text-left px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded transition"
           >
-            💾 保存
+            📝 詳細編集
           </button>
+
           <button
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full text-left px-3 py-1.5 text-xs font-semibold rounded bg-amber-600 hover:bg-amber-700 text-white transition"
+            onClick={() => {
+              handleNodeTapForConnect(nodeMenuTarget.id);
+              setNodeMenuTarget(null);
+            }}
+            className="w-full text-left px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:bg-purple-50 hover:text-purple-600 rounded transition"
           >
-            📂 開く
+            🔗 接続を追加
+          </button>
+
+          <button
+            onClick={() => {
+              setStylingNodeId(nodeMenuTarget.id);
+              setNodeMenuTarget(null);
+            }}
+            className="w-full text-left px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:bg-emerald-50 hover:text-emerald-600 rounded transition"
+          >
+            🎨 スタイルの変更
+          </button>
+
+          <button
+            onClick={() => {
+              if (window.confirm('選択したノードを削除してもよろしいですか？')) {
+                deleteTopic(nodeMenuTarget.id);
+                setNodeMenuTarget(null);
+              }
+            }}
+            className="w-full text-left px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 rounded transition border-t border-gray-100 mt-0.5 pt-1.5"
+          >
+            🗑️ 削除
+          </button>
+
+          <button
+            onClick={() => setNodeMenuTarget(null)}
+            className="w-full text-center px-2 py-1 text-[11px] text-gray-400 hover:text-gray-600 border-t mt-1"
+          >
+            閉じる
           </button>
         </div>
       )}
+
+      {/* 別ファイル管理されたモーダルの呼び出し */}
+      {editingNodeId && (
+        <EditNodeModal nodeId={editingNodeId} onClose={() => setEditingNodeId(null)} />
+      )}
+
+      {stylingNodeId && (
+        <StyleNodeModal nodeId={stylingNodeId} onClose={() => setStylingNodeId(null)} />
+      )}
+
+      {mobileMenuOpen && (
+        <div className="absolute left-3 top-16 bg-white border border-gray-200 shadow-2xl rounded-xl p-2 flex flex-col gap-2 min-w-[140px] z-[100] md:hidden pointer-events-auto">
+          <button
+            onClick={handleExportJSON}
+            className="w-full text-left px-3 py-2 text-xs font-semibold rounded bg-emerald-600 hover:bg-emerald-700 text-white transition"
+          >
+            💾 JSON保存
+          </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="w-full text-left px-3 py-2 text-xs font-semibold rounded bg-amber-600 hover:bg-amber-700 text-white transition"
+          >
+            📂 JSONを開く
+          </button>
+        </div>
+      )}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        onChange={handleImportJSON}
+        className="hidden"
+      />
 
       <ReactFlow
         nodes={nodes}
@@ -411,33 +474,21 @@ const MindMapCanvasContent: React.FC = () => {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={onNodeClick}
+        onNodeDoubleClick={(e, node) => {
+          // ダブルクリック時は直接詳細編集を開くようにしても便利です
+          setEditingNodeId(node.id);
+        }}
         onPaneClick={onPaneClick}
         onPaneContextMenu={onPaneContextMenu}
-        onNodeDragStop={onNodeDragStop}
-        
         panOnDrag={[1, 2]}
         selectionOnDrag={false}
-        nodesDraggable={true}
-        
+        nodesDraggable={!isSelectionMode}
         fitView
       >
         <Controls />
         <MiniMap className="hidden md:block" />
         <Background gap={16} size={1} />
       </ReactFlow>
-
-      {/* 画面下部のゴミ箱エリア */}
-      <div
-        ref={trashRef}
-        className={`absolute bottom-6 left-1/2 -translate-x-1/2 z-20 px-6 py-3 rounded-2xl shadow-xl border flex items-center gap-2 transition-all pointer-events-auto ${
-          isDraggingOverTrash
-            ? 'bg-red-600 text-white border-red-700 scale-110'
-            : 'bg-white/90 backdrop-blur text-red-600 border-red-200 hover:bg-red-50'
-        }`}
-      >
-        <span className="text-xl">🗑️</span>
-        <span className="text-xs font-bold whitespace-nowrap">ここにドロップして削除</span>
-      </div>
     </div>
   );
 };

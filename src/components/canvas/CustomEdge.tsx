@@ -106,7 +106,7 @@ export const CustomEdge: React.FC<EdgeProps> = ({
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px) translateY(24px)`,
               pointerEvents: 'all',
             }}
-            className="nodrag nopan bg-white border border-gray-300 shadow-xl rounded-lg p-2 flex flex-col gap-1.5 text-xs z-50 min-w-[140px]"
+            className="nodrag nopan bg-white border border-gray-300 shadow-xl rounded-lg p-2 flex flex-col gap-1.5 text-xs z-100 min-w-[140px]"
           >
             <div className="flex justify-between items-center border-b pb-1 font-bold text-gray-700">
               <span>接続設定</span>

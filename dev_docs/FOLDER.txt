@@ -3,10 +3,13 @@ mindmap-app/
 ├── src/                  # ソースコード
 │   ├── components/       # UIコンポーネント
 │   │   ├── canvas/       # キャンバス関連（React Flow、カスタムノード）
-│   │   │   ├── MindMapCanvas.tsx  # マップ描画キャンバス本体（ゴミ箱、ハンバーガーメニュー、JSON I/O）[cite: 2, 3]
+│   │   │   ├── MindMapCanvas.tsx  # マップ描画キャンバス本体（コンテキストメニュー、JSON I/O）[cite: 2, 3]
 │   │   │   └── MindMapNode.tsx    # 全方向接続対応カスタムノード[cite: 1, 3]
 │   │   ├── grid/         # データグリッド関連
 │   │   │   └── DataGrid.tsx       # Topics / Connections テーブルリアルタイム表示[cite: 3]
+│   │   ├── modals/       # モーダルダイアログ関連
+│   │   │   ├── EditNodeModal.tsx  # ノード詳細編集モーダル（拡張対応の独立管理）
+│   │   │   └── StyleNodeModal.tsx # スタイル変更モーダル（拡張対応の独立管理）
 │   │   └── sidebar/      # ノード属性編集パネル
 │   │       └── Sidebar.tsx        # 選択ノードの属性・スタイルリアルタイム編集UI[cite: 3]
 │   ├── store/            # 状態管理
@@ -23,7 +26,7 @@ mindmap-app/
 ├── package.json          # 依存関係定義[cite: 3]
 ├── postcss.config.js     # PostCSS設定ファイル (Tailwind CSS v4連携)[cite: 3]
 ├── tsconfig.json         # TypeScript設定ファイル[cite: 3]
-├── tsconfig.app.json     # アプリ用TypeScript設定[cite: 3]
+├── tsconfig.app.json     # アプリ용TypeScript設定[cite: 3]
 ├── tsconfig.node.json    # Node用TypeScript設定[cite: 3]
 ├── vite.config.ts        # Vite設定ファイル[cite: 3]
 ├── FOLDER.txt            # ディレクトリ構成図[cite: 3]
