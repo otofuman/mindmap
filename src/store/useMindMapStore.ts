@@ -9,7 +9,6 @@ import type {
 } from '../types/mindmap';
 import { type NodeChange, type EdgeChange } from '@xyflow/react';
 import { getLayoutedElements } from '../utils/layout';
-import { BASE_NODE_HEIGHT } from '../config/mindmapConfig';
 
 interface MindMapState {
   document: MindMapDocument;
@@ -20,7 +19,7 @@ interface MindMapState {
 
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
-  addTopic: (title: string, position: { x: number; y: number }, parentTopicId?: string) => string;
+  addTopic: (title: string, position: { x: number; y: number }, parentTopicId?: string, topicDisplay?: TopicDisplay) => string;
   connectTopics: (sourceId: string, targetId: string) => void;
   deleteTopic: (topicId: string) => void;
   applyAutoLayout: (direction?: 'LR' | 'TB') => void;
@@ -189,7 +188,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     }
   },
 
-  addTopic: (title: string, position: { x: number; y: number }, parentTopicId?: string) => {
+  addTopic: (title: string, position: { x: number; y: number }, parentTopicId?: string, topicDisplay?: TopicDisplay) => {
     const newTopicId = generateId();
     const newConnectionId = generateId();
 
@@ -200,7 +199,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       customValues: {},
     };
 
-    const newTopicDisplay: TopicDisplay = {
+    let newTopicDisplay: TopicDisplay = {
       topicId: newTopicId,
       shape: 'rounded_rectangle',
       position,
@@ -208,6 +207,13 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       backgroundColor: '#ffffff',
       textColor: '#333333',
     };
+    
+    if (topicDisplay) {
+      newTopicDisplay.shape = topicDisplay.shape;
+      newTopicDisplay.size = topicDisplay.size;
+      newTopicDisplay.backgroundColor = topicDisplay.backgroundColor;
+      newTopicDisplay.textColor = topicDisplay.textColor;
+    }
 
     set((state) => {
       const nextTopics = [...state.document.topics, newTopic];
@@ -219,7 +225,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
           id: newConnectionId,
           sourceTopicId: parentTopicId,
           targetTopicId: newTopicId,
-          type: 'line',
+          type: 'arrow',
           memo: '',
           customValues: {},
         });

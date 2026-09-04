@@ -19,13 +19,14 @@ import { Toolbar } from './Toolbar';
 import { NodeMenu } from './NodeMenu'; // 分離したメニューをインポート
 import { EdgeMenu } from './EdgeMenu';
 import { useMindMapStore } from '../../store/useMindMapStore';
-import type { MindMapDocument } from '../../types/mindmap';
+import type { MindMapDocument, TopicDisplay } from '../../types/mindmap';
 import type { ConnectionType } from '../../types/mindmap';
 
 import { EditNodeModal } from '../modals/EditNodeModal';
 import { StyleNodeModal } from '../modals/StyleNodeModal';
 
 import { calculateNodeDimensions } from '../../utils/nodeSizeUtils';
+import { getNewTopicName } from '../../utils/nameUtils';
 
 const nodeTypes = {
   mindMapNode: MindMapNode,
@@ -209,7 +210,7 @@ const onNodeClick = useCallback(
         x: clientX,
         y: clientY,
       });
-      addTopic('新しいトピック', position);
+      addTopic(getNewTopicName(), position);
     },
     [screenToFlowPosition, addTopic, isSelectionMode]
   );
@@ -222,11 +223,11 @@ const onNodeClick = useCallback(
           x: parentNode.position.x + 220,
           y: parentNode.position.y + (Math.random() * 80 - 40),
         };
-        addTopic('サブトピック', childPosition, primarySelectedId);
+        addTopic(getNewTopicName(parentNode.id), childPosition, primarySelectedId);
         return;
       }
     }
-    addTopic('新しいトピック', { x: 100, y: 100 });
+    addTopic(getNewTopicName(), { x: 100, y: 100 });
   }, [primarySelectedId, nodes, addTopic]);
 
   // 画面中央（Viewport Center）にノードを追加する関数
@@ -249,7 +250,7 @@ const onNodeClick = useCallback(
         y: flowPosition.y - height / 2,
       };
 
-      addTopic('新しいトピック', position);
+      addTopic(getNewTopicName(), position);
     }
   }, [screenToFlowPosition, addTopic]);
 
@@ -263,7 +264,7 @@ const onNodeClick = useCallback(
           y: parentNode.position.y + 100, // 親のすぐ下に配置
         };
         // addTopic の第3引数等に親IDを渡すか、追加後に自動で connectTopics を呼ぶ
-        addTopic('サブトピック', childPosition, parentId);
+        addTopic(getNewTopicName(parentId), childPosition, parentId);
       }
     },
     [nodes, addTopic]

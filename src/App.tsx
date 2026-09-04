@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { MindMapCanvas } from './components/canvas/MindMapCanvas';
 import { Sidebar } from './components/sidebar/Sidebar';
-import { useMindMapStore } from './store/useMindMapStore';
+//import { useMindMapStore } from './store/useMindMapStore';
 
 export const App: React.FC = () => {
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
-  const selectedNodeIds = useMindMapStore((state) => state.selectedNodeIds);
+  // const selectedNodeIds = useMindMapStore((state) => state.selectedNodeIds);
 
   return (
     <div className="w-screen h-screen flex flex-col overflow-hidden bg-gray-100 relative">

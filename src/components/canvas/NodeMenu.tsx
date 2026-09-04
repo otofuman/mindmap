@@ -30,16 +30,6 @@ export const NodeMenu: React.FC<NodeMenuProps> = ({
           ✕
         </button>
       </div>
-
-      <button
-        onClick={() => {
-          onAddChild(target.id);
-          onClose();
-        }}
-        className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition flex items-center gap-1.5"
-      >
-        <span>🌱</span> 子を追加
-      </button>
       
       <button
         onClick={() => {
@@ -53,22 +43,32 @@ export const NodeMenu: React.FC<NodeMenuProps> = ({
 
       <button
         onClick={() => {
-          onConnect(target.id);
-          onClose();
-        }}
-        className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition"
-      >
-        接続を追加
-      </button>
-
-      <button
-        onClick={() => {
           onStyle(target.id);
           onClose();
         }}
         className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition"
       >
         スタイルの変更
+      </button>
+
+      <button
+        onClick={() => {
+          onAddChild(target.id);
+          onClose();
+        }}
+        className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition flex items-center gap-1.5"
+      >
+        子を追加
+      </button>
+
+      <button
+        onClick={() => {
+          onConnect(target.id);
+          onClose();
+        }}
+        className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition"
+      >
+        接続を追加
       </button>
 
       <button
