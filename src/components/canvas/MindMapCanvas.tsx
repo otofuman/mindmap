@@ -16,10 +16,10 @@ import { MindMapNode } from './MindMapNode';
 import { CustomEdge } from './CustomEdge';
 import { TopBar } from './TopBar';
 import { Toolbar } from './Toolbar';
-import { NodeMenu } from './NodeMenu'; // 分離したメニューをインポート
+import { NodeMenu } from './NodeMenu';
 import { EdgeMenu } from './EdgeMenu';
 import { useMindMapStore } from '../../store/useMindMapStore';
-import type { MindMapDocument, TopicDisplay } from '../../types/mindmap';
+import type { MindMapDocument } from '../../types/mindmap';
 import type { ConnectionType } from '../../types/mindmap';
 
 import { EditNodeModal } from '../modals/EditNodeModal';
@@ -43,13 +43,14 @@ const MindMapCanvasContent: React.FC = () => {
   const connectingSourceId = useMindMapStore((state) => state.connectingSourceId);
   const setConnectingSourceId = useMindMapStore((state) => state.setConnectingSourceId);
   const handleNodeTapForConnect = useMindMapStore((state) => state.handleNodeTapForConnect);
-  // const updateTopic = useMindMapStore((state) => state.updateTopic);
 
   const onNodesChange = useMindMapStore((state) => state.onNodesChange);
   const onEdgesChange = useMindMapStore((state) => state.onEdgesChange);
   const addTopic = useMindMapStore((state) => state.addTopic);
   const connectTopics = useMindMapStore((state) => state.connectTopics);
-  const applyAutoLayout = useMindMapStore((state) => state.applyAutoLayout);
+  
+  // ストアの autoLayout アクションを取得
+  const autoLayout = useMindMapStore((state) => (state as any).autoLayout);
   const loadDocument = useMindMapStore((state) => state.loadDocument);
 
   const undo = useMindMapStore((state) => state.undo);
@@ -66,12 +67,8 @@ const MindMapCanvasContent: React.FC = () => {
   const [nodeMenuTarget, setNodeMenuTarget] = useState<{ id: string; x: number; y: number } | null>(null);
 
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
-  // const [stylingNodeId, setStylingNodeId] = useState<string | null>(null);
-
-  // スタイル変更モーダル用の選択中ノードIDリスト
   const [stylingNodeIds, setStylingNodeIds] = useState<string[]>([]);
 
-  // stateにエッジメニュー用のターゲットを追加
   const [edgeMenuTarget, setEdgeMenuTarget] = useState<{
     id: string;
     type: ConnectionType;
@@ -81,9 +78,8 @@ const MindMapCanvasContent: React.FC = () => {
 
   const primarySelectedId = selectedNodeIds.length > 0 ? selectedNodeIds[0] : null;
 
-const onNodeClick = useCallback(
+  const onNodeClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
-      // 接続モード中の場合は接続先確定を優先
       if (connectingSourceId) {
         event.stopPropagation();
         handleNodeTapForConnect(node.id);
@@ -94,7 +90,6 @@ const onNodeClick = useCallback(
       const isShiftPressed = event.shiftKey || event.metaKey || event.ctrlKey;
 
       if (isSelectionMode || isShiftPressed) {
-        // Shiftキーが押されている場合は、すでに選択されていれば外し、未選択なら追加する
         const isAlreadySelected = selectedNodeIds.includes(node.id);
         if (isAlreadySelected) {
           useMindMapStore.getState().setSelectedNodeIds(
@@ -107,11 +102,9 @@ const onNodeClick = useCallback(
         return;
       }
 
-      // Shiftキーが押されていない通常のクリック
       const isAlreadySelected = selectedNodeIds.includes(node.id) && selectedNodeIds.length === 1;
       
       if (isAlreadySelected) {
-        // すでに単体選択されている状態でクリックされたらタイトル編集など
         const topic = mapDocument.topics.find((t) => t.id === node.id);
         if (topic) {
           const newTitle = window.prompt('ノードの新しい名前を入力:', topic.title);
@@ -121,7 +114,6 @@ const onNodeClick = useCallback(
         }
         setNodeMenuTarget(null);
       } else {
-        // 新しく単体選択にする
         useMindMapStore.getState().setSelectedNodeIds([node.id]);
 
         const wrapperBounds = reactFlowWrapper.current?.getBoundingClientRect();
@@ -157,7 +149,6 @@ const onNodeClick = useCallback(
     });
   }, [mapDocument.topics, mapDocument.topicDisplays, selectedNodeIds, connectingSourceId]);
 
-  // edgesの生成部分でクリックハンドラーを渡す
   const edges: Edge[] = useMemo(() => {
     return mapDocument.connections.map((conn) => {
       const type = conn.type || 'arrow';
@@ -169,7 +160,7 @@ const onNodeClick = useCallback(
         data: {
           type,
           onEdgeClick: (edgeId: string, currentType: ConnectionType, x: number, y: number) => {
-            setNodeMenuTarget(null); // ノードメニューが開いていれば閉じる
+            setNodeMenuTarget(null);
             setEdgeMenuTarget({ id: edgeId, type: currentType, x, y });
           },
         },
@@ -187,7 +178,6 @@ const onNodeClick = useCallback(
     [connectTopics]
   );
 
-  // 背景クリック等でエッジメニューも閉じるようにする
   const onPaneClick = useCallback(() => {
     clearSelection();
     setNodeMenuTarget(null);
@@ -230,7 +220,6 @@ const onNodeClick = useCallback(
     addTopic(getNewTopicName(), { x: 100, y: 100 });
   }, [primarySelectedId, nodes, addTopic]);
 
-  // 画面中央（Viewport Center）にノードを追加する関数
   const handleAddNodeAtCenter = useCallback(() => {
     if (reactFlowWrapper.current) {
       const bounds = reactFlowWrapper.current.getBoundingClientRect();
@@ -242,7 +231,6 @@ const onNodeClick = useCallback(
         y: bounds.top + centerY,
       });
 
-      // デフォルトサイズから幅・高さを算出
       const { width, height } = calculateNodeDimensions(1.0, 'rounded_rectangle');
 
       const position = {
@@ -258,22 +246,23 @@ const onNodeClick = useCallback(
     (parentId: string) => {
       const parentNode = nodes.find((n) => n.id === parentId);
       if (parentNode) {
-        // 親ノードのすぐ下に配置
         const childPosition = {
           x: parentNode.position.x,
-          y: parentNode.position.y + 100, // 親のすぐ下に配置
+          y: parentNode.position.y + 100,
         };
-        // addTopic の第3引数等に親IDを渡すか、追加後に自動で connectTopics を呼ぶ
         addTopic(getNewTopicName(parentId), childPosition, parentId);
       }
     },
     [nodes, addTopic]
   );
 
-  const handleAutoLayout = useCallback(() => {
-    applyAutoLayout('LR');
+  // 整列メニューから選択されたモードを受け取って実行
+  const handleAutoLayout = useCallback((mode: string) => {
+    if (autoLayout) {
+      autoLayout(mode);
+    }
     setTimeout(() => fitView({ duration: 300 }), 50);
-  }, [applyAutoLayout, fitView]);
+  }, [autoLayout, fitView]);
 
   const handleExportJSON = useCallback(() => {
     const currentMapTitle = mapDocument.meta.title || 'mindmap';
@@ -366,7 +355,7 @@ const onNodeClick = useCallback(
         onOpenEditModal={() => primarySelectedId && setEditingNodeId(primarySelectedId)}
         onOpenStyleModal={() => {
           if (selectedNodeIds.length > 0) {
-            setStylingNodeIds(selectedNodeIds); // 単一から複数IDの管理に変更
+            setStylingNodeIds(selectedNodeIds);
           }
         }}
         onConnectStart={(nodeId) => {
@@ -375,7 +364,6 @@ const onNodeClick = useCallback(
         }}
       />
 
-      {/* ノードメニュー */}
       {nodeMenuTarget && (
         <NodeMenu
           target={nodeMenuTarget}
@@ -396,7 +384,6 @@ const onNodeClick = useCallback(
         />
       )}
 
-      {/* スタイル変更モーダル */}
       {stylingNodeIds.length > 0 && (
         <StyleNodeModal
           nodeIds={stylingNodeIds}
@@ -410,7 +397,6 @@ const onNodeClick = useCallback(
           connectionType={edgeMenuTarget.type}
           onClose={() => setEdgeMenuTarget(null)}
           onUpdateType={(type) => {
-            // as ConnectionType を追加して型を明示する
             updateConnectionType(edgeMenuTarget.id, type as ConnectionType);
             setEdgeMenuTarget(null);
           }}
@@ -425,7 +411,6 @@ const onNodeClick = useCallback(
         <EditNodeModal nodeId={editingNodeId} onClose={() => setEditingNodeId(null)} />
       )}
 
-      {/* 画面右下に常駐する新規ノード追加の「＋」ボタン */}
       <div className="absolute bottom-6 right-6 z-50">
         <button
           onClick={handleAddNodeAtCenter}

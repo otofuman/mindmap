@@ -5,10 +5,13 @@ import type {
   TopicDisplay,
   ConnectionDisplay,
   MindMapDocument,
-  ConnectionType
+  ConnectionType,
+  ColumnType,
+  CustomListMaster
 } from '../types/mindmap';
 import { type NodeChange, type EdgeChange } from '@xyflow/react';
 import { getLayoutedElements } from '../utils/layout';
+import { isRoot } from '../utils/mindmapUtils'; // 先ほど作成したisRootをインポート
 
 interface MindMapState {
   document: MindMapDocument;
@@ -44,9 +47,11 @@ interface MindMapState {
   clearSelection: () => void;
 
   // --- カスタムリスト管理アクション ---
-  addCustomList: (name: string, items: { id: string; label: string; color?: string }[]) => void;
+  addCustomList: (name: string, type: ColumnType, items: any[]) => void;
   updateCustomList: (listId: string, updates: Partial<any>) => void;
   deleteCustomList: (listId: string) => void;
+
+  autoLayout: (mode: 'auto' | 'flow-top' | 'flow-left' | string) => void;
 }
 
 const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -455,11 +460,12 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   },
 
   // --- カスタムリスト管理の実装 ---
-  addCustomList: (name: string, items) => {
+  addCustomList: (name: string, type: ColumnType, items: any[]) => {
     set((state) => {
-      const newList = {
+      const newList: CustomListMaster = {
         id: generateId(),
         name,
+        type,
         items,
       };
       const newDocument = {
@@ -470,9 +476,9 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     });
   },
 
-  updateCustomList: (listId: string, updates) => {
+  updateCustomList: (listId: string, updates: Partial<CustomListMaster>) => {
     set((state) => {
-      const newLists = (state.document.customLists || []).map((list: any) =>
+      const newLists = (state.document.customLists || []).map((list) =>
         list.id === listId ? { ...list, ...updates } : list
       );
       const newDocument = {
@@ -485,11 +491,169 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
 
   deleteCustomList: (listId: string) => {
     set((state) => {
-      const newLists = (state.document.customLists || []).filter((list: any) => list.id !== listId);
+      const newLists = (state.document.customLists || []).filter((list) => list.id !== listId);
       const newDocument = {
         ...state.document,
         customLists: newLists,
       };
+      return pushHistory(state, newDocument);
+    });
+  },
+
+  // useMindMapStore.ts に追加・拡張するアクション例
+  reorderCustomListItems: (listId: string, newItems: any[]) => {
+    set((state) => {
+      const newLists = (state.document.customLists || []).map((list) =>
+        list.id === listId ? { ...list, items: newItems } : list
+      );
+      const newDocument = {
+        ...state.document,
+        customLists: newLists,
+      };
+      return pushHistory(state, newDocument);
+    });
+  },
+
+  // useMindMapStore.ts に追加・拡張する自動レイアウトアクション
+
+  autoLayout: (mode: 'auto' | 'flow-top' | 'flow-left' | string) => {
+    set((state) => {
+      const topics = state.document.topics;
+      const connections = state.document.connections;
+      let topicDisplays = [...state.document.topicDisplays];
+      const customLists = state.document.customLists || [];
+      
+      if (topics.length === 0) return state;
+
+      // 1. ルートノードの特定
+      const rootTopics = topics.filter((t) => isRoot(t.id, connections));
+      const rootTopic = rootTopics.length > 0 ? rootTopics[0] : topics[0];
+
+      // 2. 接続から親子の子要素マップを作成
+      const childrenMap = new Map<string, string[]>();
+      connections.forEach((conn) => {
+        // 同じ接続の重複追加を防ぐ
+        const list = childrenMap.get(conn.sourceTopicId) || [];
+        if (!list.includes(conn.targetTopicId)) {
+          list.push(conn.targetTopicId);
+          childrenMap.set(conn.sourceTopicId, list);
+        }
+      });
+
+      const spacingX = 220;
+      const spacingY = 100;
+
+      const setPosition = (topicId: string, x: number, y: number) => {
+        const existingDisplay = topicDisplays.find((td) => td.topicId === topicId);
+        if (existingDisplay) {
+          existingDisplay.position = { x, y };
+        } else {
+          topicDisplays.push({
+            topicId,
+            shape: 'rounded_rectangle',
+            position: { x, y },
+            backgroundColor: '#ffffff',
+            textColor: '#0f172a',
+          });
+        }
+      };
+
+      // 3. モードに応じたレイアウト計算（無限ループ防止の visited セットを導入）
+      if (mode === 'auto' || mode === 'flow-top' || mode === 'flow-left') {
+        const visited = new Set<string>();
+
+        const layoutNode = (topicId: string, depth: number, offsetIdx: number): number => {
+          // 既に訪れたノードならループを防ぐためスキップ
+          if (visited.has(topicId)) return offsetIdx;
+          visited.add(topicId);
+
+          const children = childrenMap.get(topicId) || [];
+
+          if (mode === 'flow-left') {
+            const x = depth * spacingX;
+            let currentY = offsetIdx * spacingY;
+            setPosition(topicId, x, currentY);
+
+            if (children.length === 0) return offsetIdx + 1;
+
+            for (const childId of children) {
+              currentY = layoutNode(childId, depth + 1, currentY);
+            }
+            return currentY;
+          } else {
+            const x = offsetIdx * spacingX;
+            const y = depth * spacingY;
+            setPosition(topicId, x, y);
+
+            let currentX = offsetIdx;
+            if (children.length === 0) return offsetIdx + 1;
+
+            for (const childId of children) {
+              currentX = layoutNode(childId, depth + 1, currentX);
+            }
+            return currentX;
+          }
+        };
+
+        layoutNode(rootTopic.id, 0, 0);
+
+        // ツリーから外れた孤立ノードがあれば空いている場所に並べる
+        let orphanOffset = 0;
+        topics.forEach((t) => {
+          if (!visited.has(t.id)) {
+            setPosition(t.id, 0, (layoutNode as any).maxY || (topics.length * spacingY + orphanOffset));
+            orphanOffset += spacingY;
+          }
+        });
+
+      } else {
+        // 🏷️ カスタムリスト / カレンダーでの並べ替え・グループ化
+        const targetList = customLists.find((l) => l.id === mode || l.name === mode);
+        if (targetList) {
+          let currentY = 0;
+
+          if (targetList.type === 'calendar') {
+            // 📅 カレンダー型：日付（customValues）を時系列順にソートして縦に並べる
+            const sortedTopics = [...topics].sort((a, b) => {
+              // トピックの customValues から日付っぽい文字列を探す
+              const valA = Object.values(a.customValues || {}).find(v => typeof v === 'string' && !isNaN(Date.parse(v)));
+              const valB = Object.values(b.customValues || {}).find(v => typeof v === 'string' && !isNaN(Date.parse(v)));
+              
+              if (!valA) return 1;
+              if (!valB) return -1;
+              return new Date(valA).getTime() - new Date(valB).getTime();
+            });
+
+            sortedTopics.forEach((t, index) => {
+              setPosition(t.id, 0, index * spacingY);
+            });
+
+          } else if (targetList.type === 'milestone') {
+            // 🏷️ マイルストーン型：階層構造に従って上から順に整列
+            let depthIndex = 0;
+            const layoutMilestoneTree = (topicId: string) => {
+              setPosition(topicId, 0, depthIndex * spacingY);
+              depthIndex++;
+              const children = childrenMap.get(topicId) || [];
+              children.forEach(childId => layoutMilestoneTree(childId));
+            };
+            
+            if (rootTopic) {
+              layoutMilestoneTree(rootTopic.id);
+            }
+
+          } else {
+            // 📋 通常のリスト型：リストマスター項目の順序やグループで並べ替え
+            const rootChildren = childrenMap.get(rootTopic.id) || [];
+            rootChildren.forEach((childId) => {
+              setPosition(childId, 0, currentY);
+              currentY += spacingY;
+            });
+          }
+        }
+      }
+
+      const newDocument = { ...state.document, topicDisplays };
       return pushHistory(state, newDocument);
     });
   },

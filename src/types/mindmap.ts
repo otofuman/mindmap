@@ -100,11 +100,12 @@ export interface MilestoneItem {
   children?: MilestoneItem[];
 }
 
+// CustomListMaster の type を ColumnType に拡張または同期させる
 export interface CustomListMaster {
   id: string;
   name: string;
-  type: 'list' | 'milestone';
-  items: ListItem[] | MilestoneItem[];
+  type: ColumnType; // 'list' | 'milestone' | 'person' | 'calendar' など
+  items: any[]; // ListItem[] | MilestoneItem[] など
 }
 
 // 全体ドキュメント構造
