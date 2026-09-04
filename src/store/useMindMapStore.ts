@@ -32,6 +32,7 @@ interface MindMapState {
   loadDocument: (newDocument: MindMapDocument) => void;
   updateTopic: (topicId: string, updates: Partial<Topic>) => void;
   updateTopicDisplay: (topicId: string, updates: Partial<TopicDisplay>) => void;
+  updateMultipleTopicDisplays: (topicIds: string[], updates: Partial<TopicDisplay>) => void;
   
   connectingSourceId: string | null;
   setConnectingSourceId: (id: string | null) => void;
@@ -40,7 +41,12 @@ interface MindMapState {
   updateConnectionType: (connectionId: string, type: ConnectionType) => void;
   deleteConnection: (connectionId: string) => void;
   setSelectedNodeIds: (ids: string[]) => void;
-  clearSelection: () => void; // 選択解除用の明確な関数を追加
+  clearSelection: () => void;
+
+  // --- カスタムリスト管理アクション ---
+  addCustomList: (name: string, items: { id: string; label: string; color?: string }[]) => void;
+  updateCustomList: (listId: string, updates: Partial<any>) => void;
+  deleteCustomList: (listId: string) => void;
 }
 
 const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -103,7 +109,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
 
   setConnectingSourceId: (id: string | null) => set({ connectingSourceId: id }),
   setSelectedNodeIds: (ids: string[]) => set({ selectedNodeIds: ids }),
-  clearSelection: () => set({ selectedNodeIds: [], connectingSourceId: null }), // 完全クリア
+  clearSelection: () => set({ selectedNodeIds: [], connectingSourceId: null }),
 
   handleNodeTapForConnect: (targetNodeId: string) => {
     const { connectingSourceId, connectTopics } = get();
@@ -443,6 +449,46 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
         ...state.document,
         connections: newConnections,
         connectionDisplays: newDisplays,
+      };
+      return pushHistory(state, newDocument);
+    });
+  },
+
+  // --- カスタムリスト管理の実装 ---
+  addCustomList: (name: string, items) => {
+    set((state) => {
+      const newList = {
+        id: generateId(),
+        name,
+        items,
+      };
+      const newDocument = {
+        ...state.document,
+        customLists: [...(state.document.customLists || []), newList],
+      };
+      return pushHistory(state, newDocument);
+    });
+  },
+
+  updateCustomList: (listId: string, updates) => {
+    set((state) => {
+      const newLists = (state.document.customLists || []).map((list: any) =>
+        list.id === listId ? { ...list, ...updates } : list
+      );
+      const newDocument = {
+        ...state.document,
+        customLists: newLists,
+      };
+      return pushHistory(state, newDocument);
+    });
+  },
+
+  deleteCustomList: (listId: string) => {
+    set((state) => {
+      const newLists = (state.document.customLists || []).filter((list: any) => list.id !== listId);
+      const newDocument = {
+        ...state.document,
+        customLists: newLists,
       };
       return pushHistory(state, newDocument);
     });
