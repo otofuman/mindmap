@@ -5,7 +5,7 @@ import { useMindMapStore } from './store/useMindMapStore';
 
 export const App: React.FC = () => {
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
-  const selectedNodeId = useMindMapStore((state) => state.selectedNodeId);
+  const selectedNodeIds = useMindMapStore((state) => state.selectedNodeIds);
 
   return (
     <div className="w-screen h-screen flex flex-col overflow-hidden bg-gray-100 relative">
@@ -25,7 +25,7 @@ export const App: React.FC = () => {
       {/* ========================================================
           モバイル用 ボトムシート
          ======================================================== */}
-      {selectedNodeId && !isBottomSheetOpen && (
+      {selectedNodeIds && !isBottomSheetOpen && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 md:hidden">
           <button
             onClick={() => setIsBottomSheetOpen(true)}
