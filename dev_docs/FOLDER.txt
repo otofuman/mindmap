@@ -3,23 +3,33 @@ mindmap-app/
 ├── src/                  # ソースコード
 │   ├── components/       # UIコンポーネント
 │   │   ├── canvas/       # キャンバス関連（React Flow、カスタムノード）
-│   │   │   ├── MindMapCanvas.tsx  # マップ描画キャンバス本体（コンテキストメニュー、JSON I/O）[cite: 2, 3]
+│   │   │   ├── CustomEdge.tsx    # エッジ
+│   │   │   ├── Topbar.tsx    # トップバー
+│   │   │   ├── Toolbar.tsx    # ツールバー
+│   │   │   ├── MindMapCanvas.tsx  # マップ描画キャンバス本体（コンテキストメニュー、JSON I/O、自動整列制御）[cite: 2, 3]
 │   │   │   ├── MindMapNode.tsx    # 全方向接続対応カスタムノード（動的サイズ・形状・中央揃え対応）[cite: 1, 3]
 │   │   │   ├── NodeMenu.tsx       # ノード用ポップアップメニュー
 │   │   │   └── EdgeMenu.tsx       # エッジ用ポップアップメニュー（キャンバス一括管理）
 │   │   ├── grid/         # データグリッド関連
 │   │   │   └── DataGrid.tsx       # Topics / Connections テーブルリアルタイム表示[cite: 3]
 │   │   ├── modals/       # モーダルダイアログ関連
+│   │   │   ├── AutoLayoutMenu.tsx  # 自動製鉄選択画面（今は不使用）
 │   │   │   ├── EditNodeModal.tsx  # ノード詳細編集モーダル（拡張対応の独立管理）
 │   │   │   └── StyleNodeModal.tsx # スタイル変更モーダル（サイズ・形状・カラー一括変更対応）[cite: 3]
 │   │   └── sidebar/      # ノード属性編集パネル
 │   │       └── Sidebar.tsx        # 選択ノードの属性・スタイルリアルタイム編集UI[cite: 3]
+│   ├── config/       # コンフィグ
+│   │       └── mindmapConfig.ts        # 形状などのコンフィグ
 │   ├── store/            # 状態管理
-│   │   └── useMindMapStore.ts  # Zustand状態管理 (削除、Undo/Redo、JSON一括読み込み、一括スタイル変更)[cite: 3]
+│   │   └── useMindMapStore.ts  # Zustand状態管理 (削除、Undo/Redo、JSON一括読み込み、循環ガード付き自動レイアウト・カレンダーソート)[cite: 3]
 │   ├── types/            # 型定義
 │   │   └── mindmap.ts    # 7テーブル構造データモデル定義 (`import type` 厳格運用)[cite: 1, 3]
+│   ├── settings/            # 型定義
+│   │   └── CustomListSettingsModal.tsx    # カスタムリストの設定をする画面
 │   ├── utils/            # ユーティリティ
 │   │   ├── layout.ts     # Dagreによる自動木構造レイアウト計算[cite: 3]
+│   │   ├── mindmapUtils.ts     # マインドマップ構造に関するユーティリティ（親判定など）
+│   │   ├── nameUtil.ts     # 名前に関するユーティリティ
 │   │   ├── nodeSizeUtils.ts # スカラー値と形状からの寸法算出ユーティリティ
 │   │   └── nodeShapeUtil.ts # 形状に応じたTailwindクラス変換ユーティリティ
 │   ├── App.tsx           # アプリケーション共通レイアウト (キャンバス + サイドバー + データグリッド)[cite: 3]
@@ -30,7 +40,7 @@ mindmap-app/
 ├── package.json          # 依存関係定義[cite: 3]
 ├── postcss.config.js     # PostCSS設定ファイル (Tailwind CSS v4連携)[cite: 3]
 ├── tsconfig.json         # TypeScript設定ファイル[cite: 3]
-├── tsconfig.app.json     # アプリ用TypeScript設定[cite: 3]
+├── tsconfig.app.json     # App用TypeScript設定[cite: 3]
 ├── tsconfig.node.json    # Node用TypeScript設定[cite: 3]
 ├── vite.config.ts        # Vite設定ファイル[cite: 3]
 ├── FOLDER.txt            # ディレクトリ構成図[cite: 3]
