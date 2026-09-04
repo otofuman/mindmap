@@ -63,7 +63,7 @@ const MindMapCanvasContent: React.FC = () => {
   const [nodeMenuTarget, setNodeMenuTarget] = useState<{ id: string; x: number; y: number } | null>(null);
 
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
-  const [stylingNodeId, setStylingNodeId] = useState<string | null>(null);
+  // const [stylingNodeId, setStylingNodeId] = useState<string | null>(null);
 
   // スタイル変更モーダル用の選択中ノードIDリスト
   const [stylingNodeIds, setStylingNodeIds] = useState<string[]>([]);
@@ -358,14 +358,14 @@ const onNodeClick = useCallback(
         />
       )}
 
-      {/* エッジメニュー（キャンバス全体の一番手前に表示） */}
       {edgeMenuTarget && (
         <EdgeMenu
           target={edgeMenuTarget}
           connectionType={edgeMenuTarget.type}
           onClose={() => setEdgeMenuTarget(null)}
           onUpdateType={(type) => {
-            updateConnectionType(edgeMenuTarget.id, type);
+            // as ConnectionType を追加して型を明示する
+            updateConnectionType(edgeMenuTarget.id, type as ConnectionType);
             setEdgeMenuTarget(null);
           }}
           onDelete={() => {
@@ -389,7 +389,7 @@ const onNodeClick = useCallback(
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={onNodeClick}
-        onNodeDoubleClick={(e, node) => {
+        onNodeDoubleClick={(_, node) => {
           setEditingNodeId(node.id);
         }}
         onPaneClick={onPaneClick}

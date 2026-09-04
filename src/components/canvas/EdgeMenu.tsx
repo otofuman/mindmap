@@ -5,8 +5,8 @@ interface EdgeMenuProps {
   target: { id: string; x: number; y: number };
   connectionType: ConnectionType;
   onClose: () => void;
-  onUpdateType: (type: ConnectionType) => void;
-  onDelete: () => void;
+  onUpdateType: (id: string, type: ConnectionType) => void; // 第1引数に id を取るように修正
+  onDelete: (id: string) => void; // id を取るように修正
 }
 
 export const EdgeMenu: React.FC<EdgeMenuProps> = ({
