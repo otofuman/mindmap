@@ -40,7 +40,7 @@ const MindMapCanvasContent: React.FC = () => {
   const connectingSourceId = useMindMapStore((state) => state.connectingSourceId);
   const setConnectingSourceId = useMindMapStore((state) => state.setConnectingSourceId);
   const handleNodeTapForConnect = useMindMapStore((state) => state.handleNodeTapForConnect);
-  const updateTopic = useMindMapStore((state) => state.updateTopic);
+  // const updateTopic = useMindMapStore((state) => state.updateTopic);
 
   const onNodesChange = useMindMapStore((state) => state.onNodesChange);
   const onEdgesChange = useMindMapStore((state) => state.onEdgesChange);

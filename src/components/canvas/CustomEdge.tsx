@@ -16,7 +16,7 @@ export const CustomEdge: React.FC<EdgeProps> = ({
   data,
   style,
   // 拡張データとしてMindMapCanvasからハンドラーを受け取る
-  data: edgeData,
+  // data: edgeData,
 }) => {
   const connectionType = (data?.type as ConnectionType) || 'arrow';
   const onEdgeClick = (data as any)?.onEdgeClick;
