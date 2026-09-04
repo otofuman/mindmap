@@ -2,6 +2,7 @@ import React from 'react';
 
 interface NodeMenuProps {
   target: { id: string; x: number; y: number };
+  onAddChild: (id: string) => void;
   onClose: () => void;
   onEdit: (id: string) => void;
   onConnect: (id: string) => void;
@@ -11,6 +12,7 @@ interface NodeMenuProps {
 
 export const NodeMenu: React.FC<NodeMenuProps> = ({
   target,
+  onAddChild,
   onClose,
   onEdit,
   onConnect,
@@ -28,6 +30,16 @@ export const NodeMenu: React.FC<NodeMenuProps> = ({
           ✕
         </button>
       </div>
+
+      <button
+        onClick={() => {
+          onAddChild(target.id);
+          onClose();
+        }}
+        className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition flex items-center gap-1.5"
+      >
+        <span>🌱</span> 子を追加
+      </button>
       
       <button
         onClick={() => {

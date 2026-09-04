@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useMindMapStore } from '../../store/useMindMapStore';
+import type { NodeShape } from '../../types/mindmap';
 
 interface StyleNodeModalProps {
   nodeIds: string[];
@@ -18,6 +19,20 @@ const PRESET_COLORS = [
   { bg: '#1f2937', text: '#ffffff', label: 'ダーク' },
 ];
 
+const SIZE_PRESETS = [
+  { label: '小', size: 0.8 },
+  { label: '中', size: 1.0 },
+  { label: '大', size: 1.4 },
+];
+
+const SHAPE_OPTIONS: { label: string; value: NodeShape }[] = [
+  { label: '角丸', value: 'rounded_rectangle' },
+  { label: '四角', value: 'rectangle' },
+  { label: '円', value: 'circle' },
+  { label: 'カプセル', value: 'pill' },
+  { label: 'ひし形', value: 'diamond' },
+];
+
 export const StyleNodeModal: React.FC<StyleNodeModalProps> = ({ nodeIds, onClose }) => {
   const mapDocument = useMindMapStore((state) => state.document);
   const updateMultipleTopicDisplays = useMindMapStore((state) => (state as any).updateMultipleTopicDisplays);
@@ -27,29 +42,79 @@ export const StyleNodeModal: React.FC<StyleNodeModalProps> = ({ nodeIds, onClose
 
   const [bgColor, setBgColor] = useState(firstDisplay?.backgroundColor || '#ffffff');
   const [textColor, setTextColor] = useState(firstDisplay?.textColor || '#1f2937');
+  const [size, setSize] = useState<number>(firstDisplay?.size ?? 1.0);
+  const [shape, setShape] = useState<NodeShape>(firstDisplay?.shape || 'rounded_rectangle');
 
   const handleSave = () => {
     updateMultipleTopicDisplays(nodeIds, {
       backgroundColor: bgColor,
       textColor: textColor,
+      size: size,
+      shape: shape,
     });
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl p-5 w-[320px] flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-150">
+      <div className="bg-white rounded-2xl shadow-2xl p-5 w-[320px] flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center border-b pb-2">
           <h3 className="text-sm font-bold text-gray-800">
-            スタイル変更 ({nodeIds.length}件を選択中)
+            スタイル・サイズ変更 ({nodeIds.length}件を選択中)
           </h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 font-bold px-1">
             ✕
           </button>
         </div>
 
-        {/* プリセット選択 */}
+        {/* 形状選択 */}
         <div className="flex flex-col gap-1.5">
+          <span className="text-xs text-gray-500 font-medium">形状</span>
+          <div className="grid grid-cols-3 gap-2">
+            {SHAPE_OPTIONS.map((opt) => {
+              const isSelected = shape === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => setShape(opt.value)}
+                  className={`text-xs font-semibold py-1.5 px-2 rounded-lg border transition ${
+                    isSelected
+                      ? 'bg-blue-50 border-blue-500 text-blue-600 font-bold shadow-sm'
+                      : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* サイズ選択 */}
+        <div className="flex flex-col gap-1.5 pt-2 border-t">
+          <span className="text-xs text-gray-500 font-medium">サイズ</span>
+          <div className="grid grid-cols-3 gap-2">
+            {SIZE_PRESETS.map((preset) => {
+              const isSelected = size === preset.size;
+              return (
+                <button
+                  key={preset.label}
+                  onClick={() => setSize(preset.size)}
+                  className={`text-xs font-semibold py-1.5 px-2 rounded-lg border transition ${
+                    isSelected
+                      ? 'bg-blue-50 border-blue-500 text-blue-600 font-bold shadow-sm'
+                      : 'border-gray-200 text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* カラープリセット */}
+        <div className="flex flex-col gap-1.5 pt-2 border-t">
           <span className="text-xs text-gray-500 font-medium">カラープリセット</span>
           <div className="grid grid-cols-3 gap-2">
             {PRESET_COLORS.map((preset, idx) => (

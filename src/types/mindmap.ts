@@ -36,13 +36,14 @@ export interface Connection {
 }
 
 // 3) トピック表示テーブル (永続履歴対象外)
-export type NodeShape = 'rectangle' | 'rounded_rectangle' | 'circle' | 'diamond';
+export type NodeShape = 'rectangle' | 'rounded_rectangle' | 'circle' | 'pill' | 'diamond';
 
+// 7テーブル定義の TopicDisplay に追加するイメージ
 export interface TopicDisplay {
   topicId: string;
   shape: NodeShape;
   position: { x: number; y: number };
-  size: { width: number; height: number };
+  size?: number; // ← 大中小やスライダーで決まるスカラー値（例: 0.8, 1.0, 1.5 など）
   backgroundColor: string;
   textColor: string;
 }

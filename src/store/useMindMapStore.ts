@@ -9,6 +9,7 @@ import type {
 } from '../types/mindmap';
 import { type NodeChange, type EdgeChange } from '@xyflow/react';
 import { getLayoutedElements } from '../utils/layout';
+import { BASE_NODE_HEIGHT } from '../config/mindmapConfig';
 
 interface MindMapState {
   document: MindMapDocument;
@@ -71,7 +72,7 @@ const initialDocument: MindMapDocument = {
       topicId: 'topic_1',
       shape: 'rounded_rectangle',
       position: { x: 250, y: 150 },
-      size: { width: 150, height: 40 },
+      size: 1,
       backgroundColor: '#ffffff',
       textColor: '#333333',
     },
@@ -203,7 +204,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       topicId: newTopicId,
       shape: 'rounded_rectangle',
       position,
-      size: { width: 150, height: 40 },
+      size: 1,
       backgroundColor: '#ffffff',
       textColor: '#333333',
     };

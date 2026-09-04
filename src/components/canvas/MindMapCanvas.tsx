@@ -25,6 +25,8 @@ import type { ConnectionType } from '../../types/mindmap';
 import { EditNodeModal } from '../modals/EditNodeModal';
 import { StyleNodeModal } from '../modals/StyleNodeModal';
 
+import { calculateNodeDimensions } from '../../utils/nodeSizeUtils';
+
 const nodeTypes = {
   mindMapNode: MindMapNode,
 };
@@ -227,6 +229,46 @@ const onNodeClick = useCallback(
     addTopic('新しいトピック', { x: 100, y: 100 });
   }, [primarySelectedId, nodes, addTopic]);
 
+  // 画面中央（Viewport Center）にノードを追加する関数
+  const handleAddNodeAtCenter = useCallback(() => {
+    if (reactFlowWrapper.current) {
+      const bounds = reactFlowWrapper.current.getBoundingClientRect();
+      const centerX = bounds.width / 2;
+      const centerY = bounds.height / 2;
+
+      const flowPosition = screenToFlowPosition({
+        x: bounds.left + centerX,
+        y: bounds.top + centerY,
+      });
+
+      // デフォルトサイズから幅・高さを算出
+      const { width, height } = calculateNodeDimensions(1.0, 'rounded_rectangle');
+
+      const position = {
+        x: flowPosition.x - width / 2,
+        y: flowPosition.y - height / 2,
+      };
+
+      addTopic('新しいトピック', position);
+    }
+  }, [screenToFlowPosition, addTopic]);
+
+  const handleAddChildNode = useCallback(
+    (parentId: string) => {
+      const parentNode = nodes.find((n) => n.id === parentId);
+      if (parentNode) {
+        // 親ノードのすぐ下に配置
+        const childPosition = {
+          x: parentNode.position.x,
+          y: parentNode.position.y + 100, // 親のすぐ下に配置
+        };
+        // addTopic の第3引数等に親IDを渡すか、追加後に自動で connectTopics を呼ぶ
+        addTopic('サブトピック', childPosition, parentId);
+      }
+    },
+    [nodes, addTopic]
+  );
+
   const handleAutoLayout = useCallback(() => {
     applyAutoLayout('LR');
     setTimeout(() => fitView({ duration: 300 }), 50);
@@ -342,8 +384,11 @@ const onNodeClick = useCallback(
             handleNodeTapForConnect(id);
             setNodeMenuTarget(null);
           }}
+          onAddChild={(id) => {
+            handleAddChildNode(id);
+            setNodeMenuTarget(null);
+          }}
           onStyle={(id) => {
-            // メニューから開いた場合はそのノード、または選択中全体を対象にするなど
             setStylingNodeIds(selectedNodeIds.includes(id) ? selectedNodeIds : [id]);
           }}
           onDelete={(id) => deleteTopic(id)}
@@ -378,6 +423,17 @@ const onNodeClick = useCallback(
       {editingNodeId && (
         <EditNodeModal nodeId={editingNodeId} onClose={() => setEditingNodeId(null)} />
       )}
+
+      {/* 画面右下に常駐する新規ノード追加の「＋」ボタン */}
+      <div className="absolute bottom-6 right-6 z-50">
+        <button
+          onClick={handleAddNodeAtCenter}
+          className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center text-2xl font-bold transition hover:scale-105 active:scale-95"
+          title="新しいトピックを追加"
+        >
+          ＋
+        </button>
+      </div>
 
       <ReactFlow
         className="cursor-default"

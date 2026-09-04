@@ -4,6 +4,8 @@ import {
   type Connection,
   type TopicDisplay } from '../types/mindmap';
 
+import { calculateNodeDimensions } from './nodeSizeUtils';
+
 export const getLayoutedElements = (
   topics: Topic[],
   connections: Connection[],
@@ -23,8 +25,8 @@ export const getLayoutedElements = (
   // ノードをグラフに追加
   topics.forEach((topic) => {
     const display = topicDisplays.find((d) => d.topicId === topic.id);
-    const width = display?.size.width || 150;
-    const height = display?.size.height || 40;
+    // スカラー値と形状から幅・高さを動的に算出
+    const { width, height } = calculateNodeDimensions(display?.size, display?.shape);
 
     dagreGraph.setNode(topic.id, { width, height });
   });
@@ -41,9 +43,12 @@ export const getLayoutedElements = (
   return topicDisplays.map((display) => {
     const nodeWithPosition = dagreGraph.node(display.topicId);
     if (nodeWithPosition) {
+
+      let { width, height } = calculateNodeDimensions(display?.size, display?.shape);
+
       // Dagreの座標（中心点）を React Flow の左上原点座標に変換
-      const width = display.size.width || 150;
-      const height = display.size.height || 40;
+      width = width || 150;
+      height = height || 40;
 
       return {
         ...display,
