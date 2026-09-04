@@ -4,14 +4,14 @@ mindmap-app/
 │   ├── components/       # UIコンポーネント
 │   │   ├── canvas/       # キャンバス関連（React Flow、カスタムノード）
 │   │   │   ├── MindMapCanvas.tsx  # マップ描画キャンバス本体（コンテキストメニュー、JSON I/O）[cite: 2, 3]
-│   │   │   ├── MindMapNode.tsx    # 全方向接続対応カスタムノード[cite: 1, 3]
+│   │   │   ├── MindMapNode.tsx    # 全方向接続対応カスタムノード（動的サイズ・形状・中央揃え対応）[cite: 1, 3]
 │   │   │   ├── NodeMenu.tsx       # ノード用ポップアップメニュー
 │   │   │   └── EdgeMenu.tsx       # エッジ用ポップアップメニュー（キャンバス一括管理）
 │   │   ├── grid/         # データグリッド関連
 │   │   │   └── DataGrid.tsx       # Topics / Connections テーブルリアルタイム表示[cite: 3]
 │   │   ├── modals/       # モーダルダイアログ関連
 │   │   │   ├── EditNodeModal.tsx  # ノード詳細編集モーダル（拡張対応の独立管理）
-│   │   │   └── StyleNodeModal.tsx # スタイル変更モーダル（単一・複数一括対応の独立管理）
+│   │   │   └── StyleNodeModal.tsx # スタイル変更モーダル（サイズ・形状・カラー一括変更対応）[cite: 3]
 │   │   └── sidebar/      # ノード属性編集パネル
 │   │       └── Sidebar.tsx        # 選択ノードの属性・スタイルリアルタイム編集UI[cite: 3]
 │   ├── store/            # 状態管理
@@ -19,7 +19,9 @@ mindmap-app/
 │   ├── types/            # 型定義
 │   │   └── mindmap.ts    # 7テーブル構造データモデル定義 (`import type` 厳格運用)[cite: 1, 3]
 │   ├── utils/            # ユーティリティ
-│   │   └── layout.ts     # Dagreによる自動木構造レイアウト計算[cite: 3]
+│   │   ├── layout.ts     # Dagreによる自動木構造レイアウト計算[cite: 3]
+│   │   ├── nodeSizeUtils.ts # スカラー値と形状からの寸法算出ユーティリティ
+│   │   └── nodeShapeUtil.ts # 形状に応じたTailwindクラス変換ユーティリティ
 │   ├── App.tsx           # アプリケーション共通レイアウト (キャンバス + サイドバー + データグリッド)[cite: 3]
 │   ├── index.css         # Tailwind CSS統合・グローバルスタイル[cite: 3]
 │   ├── main.tsx          # エントリポイント[cite: 3]
