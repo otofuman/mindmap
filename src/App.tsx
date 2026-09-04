@@ -25,6 +25,7 @@ export const App: React.FC = () => {
       {/* ========================================================
           モバイル用 ボトムシート
          ======================================================== */}
+      {/* 
       {selectedNodeIds && !isBottomSheetOpen && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 md:hidden">
           <button
@@ -41,7 +42,7 @@ export const App: React.FC = () => {
           className="absolute inset-0 bg-black/40 backdrop-blur-xs z-40 md:hidden transition-opacity"
           onClick={() => setIsBottomSheetOpen(false)}
         />
-      )}
+      )} */}
 
       <div
         className={`absolute bottom-0 left-0 right-0 h-[70vh] bg-white rounded-t-2xl shadow-xl z-50 md:hidden flex flex-col transition-transform duration-300 ease-out transform ${
