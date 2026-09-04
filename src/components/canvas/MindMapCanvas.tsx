@@ -364,12 +364,12 @@ const onNodeClick = useCallback(
           target={edgeMenuTarget}
           connectionType={edgeMenuTarget.type}
           onClose={() => setEdgeMenuTarget(null)}
-          onUpdateType={(id, type) => {
-            updateConnectionType(id, type);
+          onUpdateType={(type) => {
+            updateConnectionType(edgeMenuTarget.id, type);
             setEdgeMenuTarget(null);
           }}
-          onDelete={(id) => {
-            deleteConnection(id);
+          onDelete={() => {
+            deleteConnection(edgeMenuTarget.id);
             setEdgeMenuTarget(null);
           }}
         />
@@ -377,10 +377,6 @@ const onNodeClick = useCallback(
 
       {editingNodeId && (
         <EditNodeModal nodeId={editingNodeId} onClose={() => setEditingNodeId(null)} />
-      )}
-
-      {stylingNodeId && (
-        <StyleNodeModal nodeId={stylingNodeId} onClose={() => setStylingNodeId(null)} />
       )}
 
       <ReactFlow

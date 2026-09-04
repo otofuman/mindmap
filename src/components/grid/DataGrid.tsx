@@ -6,7 +6,7 @@ export const DataGrid: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'topics' | 'connections'>('topics');
 
   const document = useMindMapStore((state) => state.document);
-  const selectedNodeId = useMindMapStore((state) => state.selectedNodeId);
+  const selectedNodeIds = useMindMapStore((state) => state.selectedNodeIds); // 複数選択対応
   const deleteTopic = useMindMapStore((state) => state.deleteTopic);
 
   return (
@@ -49,7 +49,7 @@ export const DataGrid: React.FC = () => {
             </thead>
             <tbody>
               {document.topics.map((topic: Topic) => {
-                const isSelected = topic.id === selectedNodeId;
+                const isSelected = selectedNodeIds.includes(topic.id); // 複数選択に対応したハイライト判定
                 return (
                   <tr
                     key={topic.id}

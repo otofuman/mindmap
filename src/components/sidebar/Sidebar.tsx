@@ -4,13 +4,16 @@ import { SidebarStyleSection } from './SidebarStyleSection';
 
 export const Sidebar: React.FC = () => {
   const document = useMindMapStore((state) => state.document);
-  const selectedNodeId = useMindMapStore((state) => state.selectedNodeId);
+  const selectedNodeIds = useMindMapStore((state) => state.selectedNodeIds); // 複数選択対応
   const updateTopic = useMindMapStore((state) => state.updateTopic);
   const updateTopicDisplay = useMindMapStore((state) => state.updateTopicDisplay);
   const deleteTopic = useMindMapStore((state) => (state as any).deleteTopic);
 
-  const selectedTopic = document.topics.find((t) => t.id === selectedNodeId);
-  const selectedDisplay = document.topicDisplays.find((d) => d.topicId === selectedNodeId);
+  // 選択されている中から最初のノードをターゲットにする
+  const currentSelectedId = selectedNodeIds.length > 0 ? selectedNodeIds[0] : null;
+
+  const selectedTopic = document.topics.find((t) => t.id === currentSelectedId);
+  const selectedDisplay = document.topicDisplays.find((d) => d.topicId === currentSelectedId);
 
   if (!selectedTopic || !selectedDisplay) {
     return (
@@ -34,7 +37,9 @@ export const Sidebar: React.FC = () => {
       <div className="flex justify-between items-center border-b border-gray-100 pb-3">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-blue-600"></span>
-          <h3 className="font-bold text-gray-800 text-sm tracking-wide">ノード詳細編集</h3>
+          <h3 className="font-bold text-gray-800 text-sm tracking-wide">
+            ノード詳細編集 {selectedNodeIds.length > 1 ? `(${selectedNodeIds.length}件選択中)` : ''}
+          </h3>
         </div>
         <button
           onClick={handleDeleteClick}
@@ -78,9 +83,13 @@ export const Sidebar: React.FC = () => {
         backgroundColor={selectedDisplay.backgroundColor}
         textColor={selectedDisplay.textColor}
         onColorChange={(bgColor, textColor) => {
-          updateTopicDisplay(selectedTopic.id, {
-            backgroundColor: bgColor,
-            textColor: textColor,
+          // 複数選択時は選択中のすべてのスタイルを一括変更するように配慮
+          const targets = selectedNodeIds.length > 0 ? selectedNodeIds : [selectedTopic.id];
+          targets.forEach((id) => {
+            updateTopicDisplay(id, {
+              backgroundColor: bgColor,
+              textColor: textColor,
+            });
           });
         }}
       />
