@@ -12,9 +12,8 @@ import { getLayoutedElements } from '../utils/layout';
 
 interface MindMapState {
   document: MindMapDocument;
-  selectedNodeId: string | null;
+  selectedNodeIds: string[];
 
-  // Undo/Redo 用の履歴スタック
   past: MindMapDocument[];
   future: MindMapDocument[];
 
@@ -25,7 +24,6 @@ interface MindMapState {
   deleteTopic: (topicId: string) => void;
   applyAutoLayout: (direction?: 'LR' | 'TB') => void;
 
-  // Undo / Redo アクション
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
@@ -41,6 +39,8 @@ interface MindMapState {
 
   updateConnectionType: (connectionId: string, type: ConnectionType) => void;
   deleteConnection: (connectionId: string) => void;
+  setSelectedNodeIds: (ids: string[]) => void;
+  clearSelection: () => void; // 選択解除用の明確な関数を追加
 }
 
 const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -81,7 +81,6 @@ const initialDocument: MindMapDocument = {
   history: [],
 };
 
-// 履歴保存のヘルパー（pastに現在のドキュメントを追加し、futureをクリア）
 const pushHistory = (state: MindMapState, newDocument: MindMapDocument) => {
   return {
     past: [...state.past, state.document],
@@ -94,7 +93,7 @@ const pushHistory = (state: MindMapState, newDocument: MindMapDocument) => {
 
 export const useMindMapStore = create<MindMapState>((set, get) => ({
   document: initialDocument,
-  selectedNodeId: null,
+  selectedNodeIds: [],
 
   past: [],
   future: [],
@@ -103,34 +102,47 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   connectingSourceId: null,
 
   setConnectingSourceId: (id: string | null) => set({ connectingSourceId: id }),
+  setSelectedNodeIds: (ids: string[]) => set({ selectedNodeIds: ids }),
+  clearSelection: () => set({ selectedNodeIds: [], connectingSourceId: null }), // 完全クリア
 
-  // ノードタップ時の接続ロジック
   handleNodeTapForConnect: (targetNodeId: string) => {
     const { connectingSourceId, connectTopics } = get();
 
     if (!connectingSourceId) {
-      // 1回目のタップ: 接続元に指定
       set({ connectingSourceId: targetNodeId });
     } else if (connectingSourceId === targetNodeId) {
-      // 同じノードを再度タップ: キャンセル
       set({ connectingSourceId: null });
     } else {
-      // 2回目のタップ: 接続元と接続先をつなぐ
       connectTopics(connectingSourceId, targetNodeId);
       set({ connectingSourceId: null });
     }
   },
 
   onNodesChange: (changes: NodeChange[]) => {
-    const selectChange = changes.find((c) => c.type === 'select');
-    let nextSelectedId = get().selectedNodeId;
-    if (selectChange && selectChange.type === 'select') {
-      nextSelectedId = selectChange.selected ? selectChange.id : null;
-    }
+    const currentSelectedIds = [...get().selectedNodeIds];
+    let idsChanged = false;
+
+    changes.forEach((c) => {
+      if (c.type === 'select') {
+        idsChanged = true;
+        if (c.selected) {
+          if (!currentSelectedIds.includes(c.id)) {
+            currentSelectedIds.push(c.id);
+          }
+        } else {
+          const index = currentSelectedIds.indexOf(c.id);
+          if (index > -1) {
+            currentSelectedIds.splice(index, 1);
+          }
+        }
+      } else if (c.type === 'remove') {
+        get().deleteTopic(c.id);
+        return;
+      }
+    });
 
     const removeChange = changes.find((c) => c.type === 'remove');
     if (removeChange && removeChange.type === 'remove') {
-      get().deleteTopic(removeChange.id);
       return;
     }
 
@@ -153,14 +165,13 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
           topicDisplays: newTopicDisplays,
         };
 
-        // 位置変更時も履歴に記録（ドラッグ終了時の判定簡略化のため）
         return {
           ...pushHistory(state, newDocument),
-          selectedNodeId: nextSelectedId,
+          selectedNodeIds: idsChanged ? currentSelectedIds : state.selectedNodeIds,
         };
       });
-    } else {
-      set({ selectedNodeId: nextSelectedId });
+    } else if (idsChanged) {
+      set({ selectedNodeIds: currentSelectedIds });
     }
   },
 
@@ -222,7 +233,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
 
       return {
         ...pushHistory(state, newDocument),
-        selectedNodeId: newTopicId,
+        selectedNodeIds: [newTopicId],
       };
     });
 
@@ -230,26 +241,20 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   },
 
   connectTopics: (sourceId: string, targetId: string) => {
-    if (sourceId === targetId) return; // 自分自身への接続は無視
+    if (sourceId === targetId) return;
 
     const { document } = get();
-
-    // 既に全く同じ向きの接続が存在する場合は無視（登録しない・警告なし）
     const existingSame = document.connections.find(
       (c) => c.sourceTopicId === sourceId && c.targetTopicId === targetId
     );
     if (existingSame) return;
 
-    // 逆向きの接続が既に存在する場合
     const existingReverse = document.connections.find(
       (c) => c.sourceTopicId === targetId && c.targetTopicId === sourceId
     );
 
     if (existingReverse) {
-      // 既存接続が 'bi_arrow' ならば既に双方向なので何もしない
       if (existingReverse.type === 'bi_arrow') return;
-
-      // 既存の逆向き接続を 'bi_arrow' (双方向) に昇格更新
       set((state) => {
         const newConnections = state.document.connections.map((c) =>
           c.id === existingReverse.id ? { ...c, type: 'bi_arrow' as ConnectionType } : c
@@ -260,7 +265,6 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       return;
     }
 
-    // 新規接続作成（基本設定: 'arrow' 正方向矢印）
     const newConnectionId = `conn-${Date.now()}`;
     const newConn: Connection = {
       id: newConnectionId,
@@ -273,10 +277,10 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
 
     const newConnDisplay: ConnectionDisplay = {
       connectionId: newConnectionId,
-      style: 'solid',      // lineStyle ではなく style の場合
-      routing: 'straight',   // 必要に応じて適切なデフォルト値
-      color: '#475569',     // lineColor ではなく color の場合
-      strokeWidth: 2,       // 線の太さ
+      style: 'solid',
+      routing: 'straight',
+      color: '#475569',
+      strokeWidth: 2,
     };
 
     set((state) => {
@@ -302,7 +306,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
 
       return {
         ...pushHistory(state, newDocument),
-        selectedNodeId: state.selectedNodeId === topicId ? null : state.selectedNodeId,
+        selectedNodeIds: state.selectedNodeIds.filter((id) => id !== topicId),
       };
     });
   },
@@ -325,7 +329,6 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     });
   },
 
-  // Undo (元に戻す)
   undo: () => {
     const { past, document, future } = get();
     if (past.length === 0) return;
@@ -342,7 +345,6 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     });
   },
 
-  // Redo (やり直す)
   redo: () => {
     const { past, document, future } = get();
     if (future.length === 0) return;
@@ -359,18 +361,17 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     });
   },
   
-  // ドキュメントの一括読み込み（インポート）
   loadDocument: (newDocument: MindMapDocument) => {
     set({
       document: newDocument,
-      selectedNodeId: null,
+      selectedNodeIds: [],
       past: [],
       future: [],
       canUndo: false,
       canRedo: false,
     });
   },
-  // トピック基本情報の更新
+
   updateTopic: (topicId: string, updates: Partial<Topic>) => {
     set((state) => {
       const newTopics = state.document.topics.map((t) =>
@@ -384,7 +385,6 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     });
   },
 
-  // トピック描画スタイルの更新
   updateTopicDisplay: (topicId: string, updates: Partial<TopicDisplay>) => {
     set((state) => {
       const newDisplays = state.document.topicDisplays.map((d) =>
@@ -395,6 +395,24 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
         topicDisplays: newDisplays,
       };
       return pushHistory(state, newDocument);
+    });
+  },
+
+  updateMultipleTopicDisplays: (topicIds: string[], updates: Partial<TopicDisplay>) => {
+    set((state) => {
+      const updatedDisplays = state.document.topicDisplays.map((display) => {
+        if (topicIds.includes(display.topicId)) {
+          return { ...display, ...updates };
+        }
+        return display;
+      });
+      const newDocument = {
+        ...state.document,
+        topicDisplays: updatedDisplays,
+      };
+      return {
+        ...pushHistory(state, newDocument),
+      };
     });
   },
 
