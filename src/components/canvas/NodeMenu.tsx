@@ -24,6 +24,7 @@ export const NodeMenu: React.FC<NodeMenuProps> = ({
   const customLists = useMindMapStore((state) => state.document.customLists || []);
   const topics = useMindMapStore((state) => state.document.topics || []);
   const updateTopic = useMindMapStore((state) => state.updateTopic);
+  const saveStyleToItem = useMindMapStore((state) => state.saveCurrentNodeStyleToItem);
 
   // 該当するノードを取得
   const currentTopic = topics.find((t) => t.id === target.id);
@@ -38,7 +39,7 @@ export const NodeMenu: React.FC<NodeMenuProps> = ({
   return (
     <div
       style={{ top: target.y, left: target.x }}
-      className="absolute z-[100] bg-white border border-gray-200 shadow-xl rounded-xl p-1 flex flex-col gap-0.5 min-w-[180px] pointer-events-auto"
+      className="absolute z-[100] bg-white border border-gray-200 shadow-xl rounded-xl p-1 flex flex-col gap-0.5 min-w-[200px] pointer-events-auto"
     >
       <div className="flex justify-between items-center text-[10px] text-gray-400 px-2.5 py-1 font-medium border-b border-gray-100">
         <span>メニュー</span>
@@ -78,36 +79,77 @@ export const NodeMenu: React.FC<NodeMenuProps> = ({
               <div key={list.id} className="px-2.5 py-1 flex flex-col gap-1">
                 <div className="text-[11px] font-medium text-gray-600 truncate">{list.name}</div>
                 
-                {/* 1. リスト / 人 の場合：セレクトボックスで選択 */}
+                {/* 1. リスト / 人 の場合：セレクトボックス ＋ 書式保存ボタン */}
                 {(list.type === 'list' || list.type === 'person') && (
-                  <select
-                    value={currentValue || ''}
-                    onChange={(e) => handleCustomValueChanged(list.id, e.target.value || null)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="">(未設定)</option>
-                    {(list.items || []).map((item: any) => (
-                      <option key={item.id} value={item.id}>
-                        {item.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-1.5">
+                    <select
+                      value={currentValue || ''}
+                      onChange={(e) => handleCustomValueChanged(list.id, e.target.value || null)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="">(未設定)</option>
+                      {(list.items || []).map((item: any) => (
+                        <option key={item.id} value={item.id}>
+                          {item.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    {/* 小さいボタン：現在のノード書式を選択中のアイテムに記憶 */}
+                    <button
+                      type="button"
+                      disabled={!currentValue}
+                      onClick={() => {
+                        if (currentValue) {
+                          saveStyleToItem(target.id, list.id, currentValue);
+                        }
+                      }}
+                      className={`p-1.5 text-xs rounded border transition flex items-center justify-center ${
+                        currentValue
+                          ? 'bg-white border-gray-200 hover:bg-blue-50 text-blue-600 cursor-pointer shadow-2xs'
+                          : 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed'
+                      }`}
+                      title={currentValue ? "現在のノードの書式をこのアイテムに記憶する" : "アイテムを選択すると書式を記憶できます"}
+                    >
+                      🎨
+                    </button>
+                  </div>
                 )}
 
-                {/* 2. マイルストーンの場合：セレクトボックスで選択 */}
+                {/* 2. マイルストーンの場合：セレクトボックス ＋ 書式保存ボタン */}
                 {list.type === 'milestone' && (
-                  <select
-                    value={currentValue || ''}
-                    onChange={(e) => handleCustomValueChanged(list.id, e.target.value || null)}
-                    className="w-full bg-gray-50 border border-gray-200 rounded px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="">(未設定)</option>
-                    {(list.items || []).map((ms: any) => (
-                      <option key={ms.id} value={ms.id}>
-                        {ms.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="flex items-center gap-1.5">
+                    <select
+                      value={currentValue || ''}
+                      onChange={(e) => handleCustomValueChanged(list.id, e.target.value || null)}
+                      className="w-full bg-gray-50 border border-gray-200 rounded px-2 py-1 text-xs text-gray-700 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="">(未設定)</option>
+                      {(list.items || []).map((ms: any) => (
+                        <option key={ms.id} value={ms.id}>
+                          {ms.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      type="button"
+                      disabled={!currentValue}
+                      onClick={() => {
+                        if (currentValue) {
+                          saveStyleToItem(target.id, list.id, currentValue);
+                        }
+                      }}
+                      className={`p-1.5 text-xs rounded border transition flex items-center justify-center ${
+                        currentValue
+                          ? 'bg-white border-gray-200 hover:bg-blue-50 text-blue-600 cursor-pointer shadow-2xs'
+                          : 'bg-gray-50 border-gray-100 text-gray-300 cursor-not-allowed'
+                      }`}
+                      title={currentValue ? "現在のノードの書式をこのマイルストーンに記憶する" : "マイルストーンを選択すると書式を記憶できます"}
+                    >
+                      🎨
+                    </button>
+                  </div>
                 )}
 
                 {/* 3. テキストの場合：インプット入力 */}

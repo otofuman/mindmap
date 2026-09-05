@@ -383,8 +383,9 @@ export const CustomListSettingsModal: React.FC<CustomListSettingsModalProps> = (
                                       >
                                         <option value="rounded_rectangle">角丸長方形</option>
                                         <option value="rectangle">長方形</option>
-                                        <option value="ellipse">楕円</option>
                                         <option value="circle">円</option>
+                                        <option value="pill">カプセル</option>
+                                        <option value="diamond">ひし形</option>
                                       </select>
                                     )}
                                   </div>

@@ -6,9 +6,16 @@ import { CustomListSettingsModal } from '../modals/CustomListSettingsModal';
 interface TopBarProps {
   onExportJSON: () => void;
   onImportJSON: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onExportToMermaidFile: () => void;
+  onExportToImage: () => void;
 }
 
-export const TopBar: React.FC<TopBarProps> = ({ onExportJSON, onImportJSON }) => {
+export const TopBar: React.FC<TopBarProps> = ({
+    onExportJSON,
+    onImportJSON,
+    onExportToMermaidFile,
+    onExportToImage
+  }) => {
   const mapDocument = useMindMapStore((state) => state.document);
   const loadDocument = useMindMapStore((state) => state.loadDocument); // 🌟 新規作成用にストアから取得
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -111,6 +118,20 @@ export const TopBar: React.FC<TopBarProps> = ({ onExportJSON, onImportJSON }) =>
               ＋ 新規
             </button>
 
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="px-2.5 py-1 text-xs rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 transition font-medium shadow-2xs"
+            >
+              開く
+            </button>
+
+            <button
+              onClick={onExportJSON}
+              className="px-2.5 py-1 text-xs rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 transition font-medium shadow-2xs"
+            >
+              保存
+            </button>
+
             {/* 設定（一般設定モーダルを開く） */}
             <button
               onClick={() => {
@@ -129,18 +150,6 @@ export const TopBar: React.FC<TopBarProps> = ({ onExportJSON, onImportJSON }) =>
             >
               リスト管理
             </button>
-            <button
-              onClick={onExportJSON}
-              className="px-2.5 py-1 text-xs rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 transition font-medium shadow-2xs"
-            >
-              保存
-            </button>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="px-2.5 py-1 text-xs rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 transition font-medium shadow-2xs"
-            >
-              開く
-            </button>
           </div>
 
           {mobileMenuOpen && (
@@ -155,6 +164,24 @@ export const TopBar: React.FC<TopBarProps> = ({ onExportJSON, onImportJSON }) =>
                 className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition"
               >
                 ＋ 新規作成
+              </button>
+              <button
+                onClick={() => {
+                  fileInputRef.current?.click();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition"
+              >
+                開く
+              </button>
+              <button
+                onClick={() => {
+                  onExportJSON();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition"
+              >
+                保存
               </button>
 
               {/* 設定（一般設定モーダルを開く） */}
@@ -177,24 +204,6 @@ export const TopBar: React.FC<TopBarProps> = ({ onExportJSON, onImportJSON }) =>
               >
                 リスト管理
               </button>
-              <button
-                onClick={() => {
-                  onExportJSON();
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition"
-              >
-                保存
-              </button>
-              <button
-                onClick={() => {
-                  fileInputRef.current?.click();
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition"
-              >
-                開く
-              </button>
             </div>
           )}
         </div>
@@ -210,7 +219,11 @@ export const TopBar: React.FC<TopBarProps> = ({ onExportJSON, onImportJSON }) =>
 
       {/* 一般設定モーダル */}
       {showSettingsModal && (
-        <SettingsModal onClose={() => setShowSettingsModal(false)} />
+        <SettingsModal
+          onClose={() => setShowSettingsModal(false)} 
+          onExportToMermaidFile={() => onExportToMermaidFile()} 
+          onExportToImage={() => onExportToImage()} 
+        />
       )}
 
       {/* カスタムリスト設定モーダル */}

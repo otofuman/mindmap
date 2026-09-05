@@ -7,6 +7,7 @@ import {
   MiniMap,
   useReactFlow,
   ReactFlowProvider,
+  getNodesBounds,
   type Connection,
   type OnConnect,
   type Node,
@@ -29,7 +30,7 @@ import { StyleNodeModal } from '../modals/StyleNodeModal';
 import { calculateNodeDimensions } from '../../utils/nodeSizeUtils';
 import { getNewTopicName } from '../../utils/nameUtils';
 
-import { exportJSON, importJSON } from '../../utils/fileio';
+import { exportJSON, importJSON, exportToMermaidFile, exportToImage } from '../../utils/fileio';
 
 const nodeTypes = {
   mindMapNode: MindMapNode,
@@ -37,6 +38,28 @@ const nodeTypes = {
 
 const edgeTypes = {
   customEdge: CustomEdge,
+};
+
+export const getMindMapSize = () => {
+  // Zustandのストアから直接トピックとディスプレイ位置を取得
+  const state = useMindMapStore.getState();
+  const topics = state.document.topics;
+  const topicDisplays = state.document.topicDisplays;
+
+  if (topics.length === 0) return { width: 200, height: 100 };
+
+  // React Flowのノード形式に変換してバウンディングボックスを計算
+  const nodes = topics.map((t) => {
+    const disp = topicDisplays.find((d) => d.topicId === t.id);
+    return {
+      id: t.id,
+      position: disp?.position || { x: 0, y: 0 },
+      measured: { width: 150, height: 50 }, // 必要に応じてノードのサイズ
+    };
+  });
+
+  const bounds = getNodesBounds(nodes as any);
+  return { width: bounds.width, height: bounds.height };
 };
 
 const MindMapCanvasContent: React.FC = () => {
@@ -278,6 +301,10 @@ const MindMapCanvasContent: React.FC = () => {
     [loadDocument, fitView]
   );
 
+  const handleExportToMermaidFile = useCallback(() => { exportToMermaidFile(mapDocument); }, [mapDocument]);
+
+  const handleExportToImage = useCallback(() => { exportToImage(mapDocument, getMindMapSize()); }, [mapDocument, getMindMapSize]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isCmdOrCtrl = e.metaKey || e.ctrlKey;
@@ -315,7 +342,12 @@ const MindMapCanvasContent: React.FC = () => {
         </div>
       )}
 
-      <TopBar onExportJSON={handleExportJSON} onImportJSON={handleImportJSON} />
+      <TopBar
+        onExportJSON={handleExportJSON}
+        onImportJSON={handleImportJSON}
+        onExportToMermaidFile={handleExportToMermaidFile}
+        onExportToImage={handleExportToImage}
+        />
 
       <Toolbar
         selectedNodeIds={selectedNodeIds}
@@ -412,7 +444,7 @@ const MindMapCanvasContent: React.FC = () => {
         selectionKeyCode="Shift"
         multiSelectionKeyCode={['Meta', 'Control', 'Shift']}
         nodesDraggable={true}
-        
+
         minZoom={0.01} // 🌟 ここを極端に小さくすることで、どこまでも縮小できるようになります
         maxZoom={8}    // 拡大の最大値（必要に応じて調整してください）
 

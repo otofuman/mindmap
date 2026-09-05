@@ -1,4 +1,5 @@
 import type { MindMapDocument } from "../types/mindmap";
+import { toPng } from 'html-to-image';
 
 export const exportJSON = (
     mapDocument: MindMapDocument, 
@@ -92,3 +93,89 @@ export const getCookie = (name: string): string | null => {
   }
   return null;
 };
+
+
+/**
+ * MindMapDocument を Mermaid 形式に変換し、ファイルとしてダウンロードする
+ */
+export function exportToMermaidFile(doc: MindMapDocument) {
+  const { topics, connections, meta } = doc;
+  
+  let lines: string[] = [];
+  lines.push('graph TD');
+
+  // 1. ノードの定義
+  topics.forEach((topic) => {
+    const safeTitle = topic.title.replace(/"/g, '\\"');
+    lines.push(`  ${topic.id}["${safeTitle}"]`);
+  });
+
+  // 2. 接続の定義
+  connections.forEach((conn) => {
+    let arrow = '-->';
+    if (conn.type === 'bi_arrow') {
+      arrow = '<-->';
+    } else if (conn.type === 'line') {
+      arrow = '---';
+    }
+
+    const label = conn.memo ? `|"${conn.memo}"|` : '';
+    lines.push(`  ${conn.sourceTopicId} ${arrow}${label} ${conn.targetTopicId}`);
+  });
+
+  const mermaidCode = lines.join('\n');
+
+  // ファイルとしてダウンロードさせる処理
+  const blob = new Blob([mermaidCode], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  
+  // ファイル名はマップのタイトルを基にする（不正な文字を置換）
+  const safeTitle = (meta.title || 'mindmap').replace(/[\/\\?%*:|"<>]/g, '_');
+  link.href = url;
+  link.download = `${safeTitle}.mmd`;
+  
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+
+export function exportToImage(mapDocument: MindMapDocument, size: any) {
+  const currentMapTitle = mapDocument.meta.title || 'mindmap';
+  const inputFileName = window.prompt('保存するファイル名を入力してください:', currentMapTitle);
+  if (inputFileName === null) return;
+  
+  const sanitizedTitle = inputFileName.trim() || currentMapTitle;
+  const fileName = sanitizedTitle.endsWith('.png') ? sanitizedTitle : `${sanitizedTitle}.png`;
+
+  // React Flowのビューポート要素を取得
+  const viewportElement = document.querySelector('.react-flow__viewport') as HTMLElement;
+  if (!viewportElement) return;
+
+  // 1. 現在の表示領域（要素の実際の幅・高さ）を取得
+  const width = viewportElement.clientWidth;
+  const height = viewportElement.clientHeight;
+
+  console.log(width);
+
+  // 2. ディスプレイの解像度（Retina対応など）を取得。最低でも2倍の綺麗さを担保する
+  const pixelRatio = Math.max(Math.max(size.height, size.width)/500, 2);
+
+  toPng(viewportElement, {
+    backgroundColor: '#ffffff',
+    width: width,
+    height: height,
+    pixelRatio: pixelRatio, // 表示サイズに対して高解像度化
+  })
+    .then((dataUrl) => {
+      const link = document.createElement('a');
+      link.download = fileName;
+      link.href = dataUrl;
+      link.click();
+    })
+    .catch((err) => {
+      console.error('画像のエクスポートに失敗しました', err);
+    });
+}

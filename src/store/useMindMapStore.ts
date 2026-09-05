@@ -11,7 +11,8 @@ import type {
 } from '../types/mindmap';
 import { type NodeChange, type EdgeChange } from '@xyflow/react';
 import { getLayoutedElements } from '../utils/layout';
-import { isRoot } from '../utils/mindmapUtils';
+
+import { autoLayoutTopics } from '../utils/layoutUtils';
 
 interface MindMapState {
   document: MindMapDocument;
@@ -59,6 +60,9 @@ interface MindMapState {
   addCustomList: (name: string, type: ColumnType, items: any[], defaultItemStyle?: Record<string, any> | null) => void;
   updateCustomList: (listId: string, updates: Partial<CustomListMaster>) => void;
   deleteCustomList: (listId: string) => void;
+
+  applyCustomListStylesToSelected: (listId: string) => void;
+  saveCurrentNodeStyleToItem: (topicId: string, listId: string, itemId: string) => void;
 
   autoLayout: (mode: 'auto' | 'flow-top' | 'flow-left' | string) => void;
 }
@@ -575,132 +579,131 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
 
   autoLayout: (mode: 'auto' | 'flow-top' | 'flow-left' | string) => {
     set((state) => {
-      const topics = state.document.topics;
-      const connections = state.document.connections;
-      let topicDisplays = [...state.document.topicDisplays];
-      const customLists = state.document.customLists || [];
-      
-      if (topics.length === 0) return state;
+      const { document } = state;
 
-      const rootTopics = topics.filter((t) => isRoot(t.id, connections));
-      const rootTopic = rootTopics.length > 0 ? rootTopics[0] : topics[0];
+      if (document.topics.length === 0) return state;
 
-      const childrenMap = new Map<string, string[]>();
-      connections.forEach((conn) => {
-        const list = childrenMap.get(conn.sourceTopicId) || [];
-        if (!list.includes(conn.targetTopicId)) {
-          list.push(conn.targetTopicId);
-          childrenMap.set(conn.sourceTopicId, list);
-        }
-      });
+      const newTopicDisplays = autoLayoutTopics(
+        mode,
+        document.topics,
+        document.connections,
+        document.topicDisplays,
+        document.customLists || []
+      );
 
-      const spacingX = 220;
-      const spacingY = 100;
-
-      const setPosition = (topicId: string, x: number, y: number) => {
-        const existingDisplay = topicDisplays.find((td) => td.topicId === topicId);
-        if (existingDisplay) {
-          existingDisplay.position = { x, y };
-        } else {
-          topicDisplays.push({
-            topicId,
-            shape: 'rounded_rectangle',
-            position: { x, y },
-            backgroundColor: '#ffffff',
-            textColor: '#0f172a',
-          });
-        }
+      const newDocument = {
+        ...document,
+        topicDisplays: newTopicDisplays,
       };
 
-      if (mode === 'auto' || mode === 'flow-top' || mode === 'flow-left') {
-        const visited = new Set<string>();
-
-        const layoutNode = (topicId: string, depth: number, offsetIdx: number): number => {
-          if (visited.has(topicId)) return offsetIdx;
-          visited.add(topicId);
-
-          const children = childrenMap.get(topicId) || [];
-
-          if (mode === 'flow-left') {
-            const x = depth * spacingX;
-            let currentY = offsetIdx * spacingY;
-            setPosition(topicId, x, currentY);
-
-            if (children.length === 0) return offsetIdx + 1;
-
-            for (const childId of children) {
-              currentY = layoutNode(childId, depth + 1, currentY);
-            }
-            return currentY;
-          } else {
-            const x = offsetIdx * spacingX;
-            const y = depth * spacingY;
-            setPosition(topicId, x, y);
-
-            let currentX = offsetIdx;
-            if (children.length === 0) return offsetIdx + 1;
-
-            for (const childId of children) {
-              currentX = layoutNode(childId, depth + 1, currentX);
-            }
-            return currentX;
-          }
-        };
-
-        layoutNode(rootTopic.id, 0, 0);
-
-        let orphanOffset = 0;
-        topics.forEach((t) => {
-          if (!visited.has(t.id)) {
-            setPosition(t.id, 0, (topics.length * spacingY + orphanOffset));
-            orphanOffset += spacingY;
-          }
-        });
-
-      } else {
-        const targetList = customLists.find((l) => l.id === mode || l.name === mode);
-        if (targetList) {
-          let currentY = 0;
-
-          if (targetList.type === 'calendar') {
-            const sortedTopics = [...topics].sort((a, b) => {
-              const valA = Object.values(a.customValues || {}).find(v => typeof v === 'string' && !isNaN(Date.parse(v)));
-              const valB = Object.values(b.customValues || {}).find(v => typeof v === 'string' && !isNaN(Date.parse(v)));
-              
-              if (!valA) return 1;
-              if (!valB) return -1;
-              return new Date(valA).getTime() - new Date(valB).getTime();
-            });
-
-            sortedTopics.forEach((t, index) => {
-              setPosition(t.id, 0, index * spacingY);
-            });
-
-          } else if (targetList.type === 'milestone') {
-            let depthIndex = 0;
-            const layoutMilestoneTree = (topicId: string) => {
-              setPosition(topicId, 0, depthIndex * spacingY);
-              depthIndex++;
-              const children = childrenMap.get(topicId) || [];
-              children.forEach(childId => layoutMilestoneTree(childId));
-            };
-            
-            if (rootTopic) {
-              layoutMilestoneTree(rootTopic.id);
-            }
-
-          } else {
-            const rootChildren = childrenMap.get(rootTopic.id) || [];
-            rootChildren.forEach((childId) => {
-              setPosition(childId, 0, currentY);
-              currentY += spacingY;
-            });
-          }
-        }
-      }
-
-      const newDocument = { ...state.document, topicDisplays };
       return pushHistory(state, newDocument);
     });
   },
+  applyCustomListStylesToSelected: (listId: string) => {
+    set((state) => {
+      const { selectedNodeIds, document } = state;
+      const { topics, topicDisplays, customLists } = document;
+
+      // 選択ノードがない場合は全ノードを対象にするか、何もしない（ここでは選択ノードを対象、なければ全ノード）
+      const targetIds = selectedNodeIds.length > 0 ? selectedNodeIds : topics.map((t) => t.id);
+
+      let newDisplays = [...topicDisplays];
+      let hasChanges = false;
+
+      targetIds.forEach((topicId) => {
+        const topic = topics.find((t) => t.id === topicId);
+        if (!topic || !topic.customValues) return;
+
+        // 各カスタム列の値を確認
+        Object.entries(topic.customValues).forEach(([thislistId, val]) => {
+          if (thislistId !== listId) return;
+
+          const list = customLists.find((l) => l.id === listId);
+          if (!list) return;
+
+          let targetStyle: Record<string, any> | null = null;
+
+          // 1. 選択された値（アイテム）個別にスタイルが設定されているか確認
+          if (list.items && Array.isArray(list.items)) {
+            const matchedItem = list.items.find((item: any) => item.id === val);
+            if (matchedItem && matchedItem.style) {
+              targetStyle = matchedItem.style;
+            }
+          }
+          
+          // 2. 個別スタイルがなければ、リスト全体の既定スタイルを確認
+          if (!targetStyle && list.defaultItemStyle) {
+            targetStyle = list.defaultItemStyle;
+          }
+
+          // スタイルが見つかった場合、ノードの表示（TopicDisplay）を上書き
+          if (targetStyle) {
+            hasChanges = true;
+            newDisplays = newDisplays.map((d) => {
+              if (d.topicId === topicId) {
+                return {
+                  ...d,
+                  ...targetStyle, // スタイルを上書き
+                };
+              }
+              return d;
+            });
+          }
+        });
+      });
+
+      if (!hasChanges) return state;
+
+      const newDocument = {
+        ...state.document,
+        topicDisplays: newDisplays,
+      };
+      return pushHistory(state, newDocument);
+    });
+  },
+
+  saveCurrentNodeStyleToItem: (topicId: string, listId: string, itemId: string) => {
+    set((state) => {
+      const { topicDisplays, customLists } = state.document;
+
+      // ノードの現在の表示スタイルを取得
+      const display = topicDisplays.find((d) => d.topicId === topicId);
+      if (!display) return state;
+
+      // 保存するスタイルプロパティ（背景色、文字色、形状など）
+      const currentStyle = {
+        backgroundColor: display.backgroundColor,
+        textColor: display.textColor,
+        shape: display.shape,
+      };
+
+      // 該当するカスタムリストのアイテムのスタイルを更新
+      const newCustomLists = customLists.map((list) => {
+        if (list.id !== listId) return list;
+
+        const newItems = list.items.map((item: any) => {
+          if (item.id === itemId) {
+            return {
+              ...item,
+              style: currentStyle, // ノードの現在の書式をアイテムに割り当て
+            };
+          }
+          return item;
+        });
+
+        return {
+          ...list,
+          items: newItems,
+        };
+      });
+
+      const newDocument = {
+        ...state.document,
+        customLists: newCustomLists,
+      };
+
+      return pushHistory(state, newDocument);
+    });
+  },
+
 }));

@@ -2,10 +2,16 @@ import React from 'react';
 import { useMindMapStore } from '../../store/useMindMapStore';
 
 interface SettingsModalProps {
-  onClose: () => void;
+  onClose: () => void;  
+  onExportToMermaidFile: () => void;
+  onExportToImage: () => void;
 }
 
-export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
+export const SettingsModal: React.FC<SettingsModalProps> = ({
+  onClose,
+  onExportToMermaidFile,
+  onExportToImage
+}) => {
   const mapDocument = useMindMapStore((state) => state.document);
 
   return (
@@ -41,6 +47,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
               className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
             />
           </div>
+
+          <label className="block text-sm font-medium text-gray-700 mb-1">出力</label>
+          <button
+            onClick={onExportToMermaidFile}
+            className="w-60 text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:text-blue-700 rounded-lg border border-gray-300 transition"
+          >
+            Mermaid形式で出力
+          </button>
+
+          <button
+            onClick={onExportToImage}
+            className="w-60 text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:text-blue-700 rounded-lg border border-gray-300 transition"
+          >
+            画像形式で出力
+          </button>
         </div>
 
         <div className="mt-6 flex justify-end">
