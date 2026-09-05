@@ -7,7 +7,6 @@ interface SettingsModalProps {
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
   const mapDocument = useMindMapStore((state) => state.document);
-  // 必要に応じてメタ情報や全体設定を更新するストアのアクションを呼ぶ
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
@@ -26,7 +25,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          {/* その他の一般設定項目をここに追加 */}
+
+          {/* 🌟 追加：背景グリッドの表示切替設定 */}
+          <div className="flex items-center justify-between pt-2">
+            <div>
+              <label className="text-sm font-medium text-gray-700">背景に正方形グリッドを表示</label>
+              <p className="text-xs text-gray-400">キャンバスの背景ドット/グリッドの表示を切り替えます</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={mapDocument.meta.showGrid ?? true}
+              onChange={(e) => {
+                useMindMapStore.getState().updateMeta({ showGrid: e.target.checked });
+              }}
+              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer"
+            />
+          </div>
         </div>
 
         <div className="mt-6 flex justify-end">

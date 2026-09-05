@@ -2,6 +2,7 @@ import React, { useCallback, useRef, useMemo, useEffect, useState } from 'react'
 import {
   ReactFlow,
   Background,
+  BackgroundVariant,
   Controls,
   MiniMap,
   useReactFlow,
@@ -411,11 +412,24 @@ const MindMapCanvasContent: React.FC = () => {
         selectionKeyCode="Shift"
         multiSelectionKeyCode={['Meta', 'Control', 'Shift']}
         nodesDraggable={true}
+        
+        minZoom={0.01} // 🌟 ここを極端に小さくすることで、どこまでも縮小できるようになります
+        maxZoom={8}    // 拡大の最大値（必要に応じて調整してください）
+
         fitView
       >
         <Controls className="!bg-white !border-gray-200 !shadow-sm !rounded-xl" />
         <MiniMap className="hidden md:block !bg-white !border-gray-200 !rounded-xl overflow-hidden" />
-        <Background gap={20} size={1} color="#e2e8f0" />
+        
+        {/* 🌟 変更後：meta.showGrid が true（または未定義）の場合のみ表示 */}
+        {mapDocument.meta.showGrid !== false && (
+          <Background 
+            variant={BackgroundVariant.Lines} // 🌟 ここを 'lines' にすると正方形のグリッドになります（'dots' だと点になります）
+            gap={20} 
+            size={1} 
+            color="#e2e8f0" 
+          />
+        )}
       </ReactFlow>
     </div>
   );

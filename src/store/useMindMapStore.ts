@@ -11,7 +11,7 @@ import type {
 } from '../types/mindmap';
 import { type NodeChange, type EdgeChange } from '@xyflow/react';
 import { getLayoutedElements } from '../utils/layout';
-import { isRoot } from '../utils/mindmapUtils'; // 先ほど作成したisRootをインポート
+import { isRoot } from '../utils/mindmapUtils';
 
 interface MindMapState {
   document: MindMapDocument;
@@ -20,8 +20,11 @@ interface MindMapState {
   past: MindMapDocument[];
   future: MindMapDocument[];
   
-  markHistoryAsSaved: () => void; // 追加
+  markHistoryAsSaved: () => void;
   isDirty: boolean;
+
+  // 🌟 ドラッグ状態保持用
+  dragStartDocument: MindMapDocument | null;
 
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
@@ -40,10 +43,9 @@ interface MindMapState {
   updateTopicDisplay: (topicId: string, updates: Partial<TopicDisplay>) => void;
   updateMultipleTopicDisplays: (topicIds: string[], updates: Partial<TopicDisplay>) => void;
   
-  dragStartDocument: MindMapDocument | null;
-  startDrag: () => void;
-  endDrag: () => void;
-
+  // 🌟 追加：一般設定（グリッド表示など）の更新用
+  updateMeta: (updates: Partial<MindMapDocument['meta']>) => void;
+  
   connectingSourceId: string | null;
   setConnectingSourceId: (id: string | null) => void;
   handleNodeTapForConnect: (targetNodeId: string) => void;
@@ -53,9 +55,9 @@ interface MindMapState {
   setSelectedNodeIds: (ids: string[]) => void;
   clearSelection: () => void;
 
-  // --- カスタムリスト管理アクション ---
-  addCustomList: (name: string, type: ColumnType, items: any[]) => void;
-  updateCustomList: (listId: string, updates: Partial<any>) => void;
+  // 🌟 変更：CustomListMaster にデフォルトスタイルを受け渡せるように拡張
+  addCustomList: (name: string, type: ColumnType, items: any[], defaultItemStyle?: Record<string, any> | null) => void;
+  updateCustomList: (listId: string, updates: Partial<CustomListMaster>) => void;
   deleteCustomList: (listId: string) => void;
 
   autoLayout: (mode: 'auto' | 'flow-top' | 'flow-left' | string) => void;
@@ -71,6 +73,7 @@ const initialDocument: MindMapDocument = {
     updatedAt: new Date().toISOString(),
     version: '1.0.0',
     savedAs: null,
+    showGrid: true, // 🌟 一般設定：背景に正方形グリッドを表示するかどうか（初期値: 表示）
   },
   schema: {
     topicColumns: [],
@@ -120,35 +123,14 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   canUndo: false,
   canRedo: false,
   connectingSourceId: null,
+  dragStartDocument: null,
 
   markHistoryAsSaved: () => {
     set({
-      isDirty: false, // 🌟 保存されたので未保存フラグを下ろす
+      isDirty: false,
     });
   },
   isDirty: false,
-
-  dragStartDocument: null,
-
-  // 🌟 ドラッグ開始時に、その時点のドキュメントを保持する
-  startDrag: () => set((state) => ({ dragStartDocument: state.document })),
-
-  // 🌟 ドラッグ終了時に、開始時から位置が変わっていれば1回だけ履歴に積む
-  endDrag: () => set((state) => {
-    if (!state.dragStartDocument) return {};
-
-    const hasChanged = JSON.stringify(state.dragStartDocument) !== JSON.stringify(state.document);
-    if (!hasChanged) return { dragStartDocument: null };
-
-    return {
-      past: [...state.past, state.dragStartDocument],
-      future: [],
-      canUndo: true,
-      canRedo: false,
-      isDirty: true,
-      dragStartDocument: null,
-    };
-  }),
 
   setConnectingSourceId: (id: string | null) => set({ connectingSourceId: id }),
   setSelectedNodeIds: (ids: string[]) => set({ selectedNodeIds: ids }),
@@ -170,6 +152,8 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   onNodesChange: (changes: NodeChange[]) => {
     const currentSelectedIds = [...get().selectedNodeIds];
     let idsChanged = false;
+    let isDraggingNow = false;
+    let isDragEndNow = false;
 
     changes.forEach((c) => {
       if (c.type === 'select') {
@@ -187,6 +171,12 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       } else if (c.type === 'remove') {
         get().deleteTopic(c.id);
         return;
+      } else if (c.type === 'position') {
+        if (c.dragging) {
+          isDraggingNow = true;
+        } else if (c.dragging === false) {
+          isDragEndNow = true;
+        }
       }
     });
 
@@ -198,6 +188,12 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     const positionChanges = changes.filter((c) => c.type === 'position');
     if (positionChanges.length > 0) {
       set((state) => {
+        // 1. ドラッグが始まった瞬間（かつまだ dragStartDocument が保持されていない場合）
+        let newDragStartDoc = state.dragStartDocument;
+        if (isDraggingNow && !newDragStartDoc) {
+          newDragStartDoc = state.document;
+        }
+
         const newTopicDisplays = state.document.topicDisplays.map((display) => {
           const change = positionChanges.find((c) => c.id === display.topicId);
           if (change && change.type === 'position' && change.position) {
@@ -214,8 +210,33 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
           topicDisplays: newTopicDisplays,
         };
 
+        // 2. ドラッグが終了した瞬間（dragging: false を検知）
+        if (isDragEndNow && newDragStartDoc) {
+          const hasChanged = JSON.stringify(newDragStartDoc) !== JSON.stringify(newDocument);
+          if (hasChanged) {
+            return {
+              document: newDocument,
+              past: [...state.past, newDragStartDoc],
+              future: [],
+              canUndo: true,
+              canRedo: false,
+              isDirty: true,
+              dragStartDocument: null,
+              selectedNodeIds: idsChanged ? currentSelectedIds : state.selectedNodeIds,
+            };
+          } else {
+            return {
+              document: newDocument,
+              dragStartDocument: null,
+              selectedNodeIds: idsChanged ? currentSelectedIds : state.selectedNodeIds,
+            };
+          }
+        }
+
+        // 3. ドラッグ中は履歴を積まず、プレビュー位置のみ更新
         return {
-          ...pushHistory(state, newDocument),
+          document: newDocument,
+          dragStartDocument: newDragStartDoc,
           selectedNodeIds: idsChanged ? currentSelectedIds : state.selectedNodeIds,
         };
       });
@@ -473,6 +494,18 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     });
   },
 
+  // 🌟 追加：メタ情報（一般設定）を更新するメソッド
+  updateMeta: (updates: Partial<MindMapDocument['meta']>) => {
+    set((state) => {
+      const newMeta = { ...state.document.meta, ...updates };
+      const newDocument = {
+        ...state.document,
+        meta: newMeta,
+      };
+      return pushHistory(state, newDocument);
+    });
+  },
+
   updateConnectionType: (connectionId: string, type: ConnectionType) => {
     set((state) => {
       const newConnections = state.document.connections.map((c) =>
@@ -498,14 +531,15 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     });
   },
 
-  // --- カスタムリスト管理の実装 ---
-  addCustomList: (name: string, type: ColumnType, items: any[]) => {
+  // 🌟 変更：各アイテムごとの既定スタイル（defaultItemStyle：null許容）を受け取れるように拡張
+  addCustomList: (name: string, type: ColumnType, items: any[], defaultItemStyle: Record<string, any> | null = null) => {
     set((state) => {
       const newList: CustomListMaster = {
         id: generateId(),
         name,
         type,
         items,
+        defaultItemStyle, // 各アイテムごとの既定スタイル（nullでも可）
       };
       const newDocument = {
         ...state.document,
@@ -539,22 +573,6 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
     });
   },
 
-  // useMindMapStore.ts に追加・拡張するアクション例
-  reorderCustomListItems: (listId: string, newItems: any[]) => {
-    set((state) => {
-      const newLists = (state.document.customLists || []).map((list) =>
-        list.id === listId ? { ...list, items: newItems } : list
-      );
-      const newDocument = {
-        ...state.document,
-        customLists: newLists,
-      };
-      return pushHistory(state, newDocument);
-    });
-  },
-
-  // useMindMapStore.ts に追加・拡張する自動レイアウトアクション
-
   autoLayout: (mode: 'auto' | 'flow-top' | 'flow-left' | string) => {
     set((state) => {
       const topics = state.document.topics;
@@ -564,14 +582,11 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       
       if (topics.length === 0) return state;
 
-      // 1. ルートノードの特定
       const rootTopics = topics.filter((t) => isRoot(t.id, connections));
       const rootTopic = rootTopics.length > 0 ? rootTopics[0] : topics[0];
 
-      // 2. 接続から親子の子要素マップを作成
       const childrenMap = new Map<string, string[]>();
       connections.forEach((conn) => {
-        // 同じ接続の重複追加を防ぐ
         const list = childrenMap.get(conn.sourceTopicId) || [];
         if (!list.includes(conn.targetTopicId)) {
           list.push(conn.targetTopicId);
@@ -597,12 +612,10 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
         }
       };
 
-      // 3. モードに応じたレイアウト計算（無限ループ防止の visited セットを導入）
       if (mode === 'auto' || mode === 'flow-top' || mode === 'flow-left') {
         const visited = new Set<string>();
 
         const layoutNode = (topicId: string, depth: number, offsetIdx: number): number => {
-          // 既に訪れたノードならループを防ぐためスキップ
           if (visited.has(topicId)) return offsetIdx;
           visited.add(topicId);
 
@@ -636,25 +649,21 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
 
         layoutNode(rootTopic.id, 0, 0);
 
-        // ツリーから外れた孤立ノードがあれば空いている場所に並べる
         let orphanOffset = 0;
         topics.forEach((t) => {
           if (!visited.has(t.id)) {
-            setPosition(t.id, 0, (layoutNode as any).maxY || (topics.length * spacingY + orphanOffset));
+            setPosition(t.id, 0, (topics.length * spacingY + orphanOffset));
             orphanOffset += spacingY;
           }
         });
 
       } else {
-        // 🏷️ カスタムリスト / カレンダーでの並べ替え・グループ化
         const targetList = customLists.find((l) => l.id === mode || l.name === mode);
         if (targetList) {
           let currentY = 0;
 
           if (targetList.type === 'calendar') {
-            // 📅 カレンダー型：日付（customValues）を時系列順にソートして縦に並べる
             const sortedTopics = [...topics].sort((a, b) => {
-              // トピックの customValues から日付っぽい文字列を探す
               const valA = Object.values(a.customValues || {}).find(v => typeof v === 'string' && !isNaN(Date.parse(v)));
               const valB = Object.values(b.customValues || {}).find(v => typeof v === 'string' && !isNaN(Date.parse(v)));
               
@@ -668,7 +677,6 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
             });
 
           } else if (targetList.type === 'milestone') {
-            // 🏷️ マイルストーン型：階層構造に従って上から順に整列
             let depthIndex = 0;
             const layoutMilestoneTree = (topicId: string) => {
               setPosition(topicId, 0, depthIndex * spacingY);
@@ -682,7 +690,6 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
             }
 
           } else {
-            // 📋 通常のリスト型：リストマスター項目の順序やグループで並べ替え
             const rootChildren = childrenMap.get(rootTopic.id) || [];
             rootChildren.forEach((childId) => {
               setPosition(childId, 0, currentY);

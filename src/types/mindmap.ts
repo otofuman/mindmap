@@ -85,11 +85,19 @@ export interface TempHistoryRecord {
   newData?: any;
 }
 
+
+export interface ItemStyle {
+  shape?: NodeShape | null;
+  backgroundColor?: string | null;
+  textColor?: string | null;
+}
+
 // 7+) リスト/マイルストーンマスター定義
 export interface ListItem {
   id: string;
   label: string;
   color?: string;
+  style?: ItemStyle | null;
 }
 
 export interface MilestoneItem {
@@ -98,6 +106,7 @@ export interface MilestoneItem {
   parentId: string | null;
   dueDate?: string;
   children?: MilestoneItem[];
+  style?: ItemStyle | null;
 }
 
 // CustomListMaster の type を ColumnType に拡張または同期させる
@@ -106,6 +115,7 @@ export interface CustomListMaster {
   name: string;
   type: ColumnType; // 'list' | 'milestone' | 'person' | 'calendar' など
   items: any[]; // ListItem[] | MilestoneItem[] など
+  defaultItemStyle?: Record<string, any> | null;
 }
 
 // 全体ドキュメント構造
@@ -117,6 +127,7 @@ export interface MindMapDocument {
     updatedAt: string;
     version: string;
     savedAs: string | null;
+    showGrid?: boolean;
   };
   schema: {
     topicColumns: ColumnDefinition[];

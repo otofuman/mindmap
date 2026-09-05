@@ -10,6 +10,7 @@ interface TopBarProps {
 
 export const TopBar: React.FC<TopBarProps> = ({ onExportJSON, onImportJSON }) => {
   const mapDocument = useMindMapStore((state) => state.document);
+  const loadDocument = useMindMapStore((state) => state.loadDocument); // 🌟 新規作成用にストアから取得
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showCustomListSettingsModal, setShowCustomListSettingsModal] = useState(false);
@@ -27,6 +28,57 @@ export const TopBar: React.FC<TopBarProps> = ({ onExportJSON, onImportJSON }) =>
         }
       }));
     }
+  };
+
+  // 🌟 新規作成の処理（初期ドキュメントをロード）
+  const handleNewMap = () => {
+    if (isDirty && !window.confirm('保存されていない変更があります。新しいマインドマップを作成しますか？')) {
+      return;
+    }
+    if (!isDirty && !window.confirm('新しいマインドマップを作成しますか？')) {
+      return;
+    }
+
+    // 初期状態のドキュメント構造
+    const freshDocument = {
+      meta: {
+        id: `doc_${Date.now()}`,
+        title: '無題のマインドマップ',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        version: '1.0.0',
+        savedAs: null,
+        showGrid: true,
+      },
+      schema: {
+        topicColumns: [],
+        connectionColumns: [],
+      },
+      topics: [
+        {
+          id: 'topic_1',
+          title: 'メインアイデア',
+          detailMemo: '',
+          customValues: {},
+        },
+      ],
+      connections: [],
+      topicDisplays: [
+        {
+          topicId: 'topic_1',
+          shape: 'rounded_rectangle' as const,
+          position: { x: 250, y: 150 },
+          size: 1,
+          backgroundColor: '#ffffff',
+          textColor: '#333333',
+        },
+      ],
+      connectionDisplays: [],
+      customLists: [],
+      history: [],
+    };
+
+    loadDocument(freshDocument);
   };
 
   return (
@@ -50,7 +102,16 @@ export const TopBar: React.FC<TopBarProps> = ({ onExportJSON, onImportJSON }) =>
           </div>
 
           <div className="hidden md:flex gap-1.5 items-center">
-            {/* 新規追加：設定（一般設定モーダルを開く） */}
+            {/* 🌟 新規作成ボタン */}
+            <button
+              onClick={handleNewMap}
+              className="px-2.5 py-1 text-xs rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition font-medium shadow-2xs flex items-center gap-1"
+              title="新しいマインドマップを作成"
+            >
+              ＋ 新規
+            </button>
+
+            {/* 設定（一般設定モーダルを開く） */}
             <button
               onClick={() => {
                 setShowSettingsModal(true);
@@ -63,7 +124,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onExportJSON, onImportJSON }) =>
 
             <button
               onClick={() => setShowCustomListSettingsModal(true)}
-              className="px-2.5 py-1 text-xs rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 transition font-medium shadow-2xs flex items-center gap-1"
+              className="px-2.5 py-1 text-xs rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 transition font-medium shadow-2xs"
               title="カスタムリスト設定"
             >
               リスト管理
@@ -85,7 +146,18 @@ export const TopBar: React.FC<TopBarProps> = ({ onExportJSON, onImportJSON }) =>
           {mobileMenuOpen && (
             <div className="absolute left-0 top-12 bg-white border border-gray-200 shadow-xl rounded-xl p-1.5 flex flex-col gap-1 min-w-[140px] z-[100] pointer-events-auto">
               
-              {/* 新規追加：設定（一般設定モーダルを開く） */}
+              {/* 🌟 モバイルメニュー用：新規作成 */}
+              <button
+                onClick={() => {
+                  handleNewMap();
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition"
+              >
+                ＋ 新規作成
+              </button>
+
+              {/* 設定（一般設定モーダルを開く） */}
               <button
                 onClick={() => {
                   setShowSettingsModal(true);
@@ -136,7 +208,7 @@ export const TopBar: React.FC<TopBarProps> = ({ onExportJSON, onImportJSON }) =>
         />
       </div>
 
-      {/* カスタムリスト設定モーダル */}
+      {/* 一般設定モーダル */}
       {showSettingsModal && (
         <SettingsModal onClose={() => setShowSettingsModal(false)} />
       )}
