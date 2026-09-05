@@ -301,6 +301,8 @@ export const CustomListSettingsModal: React.FC<CustomListSettingsModalProps> = (
                           };
 
                           return orderedTree.map(({ item: ms, depth }, index, array) => {
+                            index;
+                            array;
                             const isRoot = depth === 0;
                             // 親変更の選択肢（自分自身や自分の子孫以外を選択できるようにする）
                             const possibleParents = items.filter(item => item.id !== ms.id);

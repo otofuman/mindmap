@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useMindMapStore } from '../../store/useMindMapStore';
-import { CustomListSettingsModal } from '../settings/CustomListSettingsModal';
+import { SettingsModal } from '../modals/SettingsModal';
+import { CustomListSettingsModal } from '../modals/CustomListSettingsModal';
 
 interface TopBarProps {
   onExportJSON: () => void;
@@ -11,7 +12,9 @@ export const TopBar: React.FC<TopBarProps> = ({ onExportJSON, onImportJSON }) =>
   const mapDocument = useMindMapStore((state) => state.document);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showCustomListSettingsModal, setShowCustomListSettingsModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isDirty = useMindMapStore((state) => state.isDirty);
 
   const handleTitleClick = () => {
     const currentTitle = mapDocument.meta.title || 'マインドマップ';
@@ -42,17 +45,28 @@ export const TopBar: React.FC<TopBarProps> = ({ onExportJSON, onImportJSON }) =>
               className="font-medium text-gray-800 text-xs md:text-sm truncate cursor-pointer hover:text-blue-600 transition"
               title="クリックして名前を変更"
             >
-              {mapDocument.meta.title || 'マインドマップ'}
+              {mapDocument.meta.title || 'マインドマップ'}{isDirty && ' *'}
             </span>
           </div>
 
           <div className="hidden md:flex gap-1.5 items-center">
+            {/* 新規追加：設定（一般設定モーダルを開く） */}
             <button
-              onClick={() => setShowSettingsModal(true)}
+              onClick={() => {
+                setShowSettingsModal(true);
+              }}
+              className="px-2.5 py-1 text-xs rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 transition font-medium shadow-2xs flex items-center gap-1"
+              title="一般設定"
+            >
+              設定
+            </button>
+
+            <button
+              onClick={() => setShowCustomListSettingsModal(true)}
               className="px-2.5 py-1 text-xs rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 transition font-medium shadow-2xs flex items-center gap-1"
               title="カスタムリスト設定"
             >
-              ⚙️ 設定
+              リスト管理
             </button>
             <button
               onClick={onExportJSON}
@@ -70,6 +84,8 @@ export const TopBar: React.FC<TopBarProps> = ({ onExportJSON, onImportJSON }) =>
 
           {mobileMenuOpen && (
             <div className="absolute left-0 top-12 bg-white border border-gray-200 shadow-xl rounded-xl p-1.5 flex flex-col gap-1 min-w-[140px] z-[100] pointer-events-auto">
+              
+              {/* 新規追加：設定（一般設定モーダルを開く） */}
               <button
                 onClick={() => {
                   setShowSettingsModal(true);
@@ -77,7 +93,17 @@ export const TopBar: React.FC<TopBarProps> = ({ onExportJSON, onImportJSON }) =>
                 }}
                 className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition"
               >
-                ⚙️ 設定
+                設定
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowCustomListSettingsModal(true);
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition"
+              >
+                リスト管理
               </button>
               <button
                 onClick={() => {
@@ -112,7 +138,12 @@ export const TopBar: React.FC<TopBarProps> = ({ onExportJSON, onImportJSON }) =>
 
       {/* カスタムリスト設定モーダル */}
       {showSettingsModal && (
-        <CustomListSettingsModal onClose={() => setShowSettingsModal(false)} />
+        <SettingsModal onClose={() => setShowSettingsModal(false)} />
+      )}
+
+      {/* カスタムリスト設定モーダル */}
+      {showCustomListSettingsModal && (
+        <CustomListSettingsModal onClose={() => setShowCustomListSettingsModal(false)} />
       )}
     </>
   );

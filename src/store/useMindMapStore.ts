@@ -19,6 +19,9 @@ interface MindMapState {
 
   past: MindMapDocument[];
   future: MindMapDocument[];
+  
+  markHistoryAsSaved: () => void; // 追加
+  isDirty: boolean;
 
   onNodesChange: (changes: NodeChange[]) => void;
   onEdgesChange: (changes: EdgeChange[]) => void;
@@ -37,6 +40,10 @@ interface MindMapState {
   updateTopicDisplay: (topicId: string, updates: Partial<TopicDisplay>) => void;
   updateMultipleTopicDisplays: (topicIds: string[], updates: Partial<TopicDisplay>) => void;
   
+  dragStartDocument: MindMapDocument | null;
+  startDrag: () => void;
+  endDrag: () => void;
+
   connectingSourceId: string | null;
   setConnectingSourceId: (id: string | null) => void;
   handleNodeTapForConnect: (targetNodeId: string) => void;
@@ -63,6 +70,7 @@ const initialDocument: MindMapDocument = {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     version: '1.0.0',
+    savedAs: null,
   },
   schema: {
     topicColumns: [],
@@ -99,6 +107,7 @@ const pushHistory = (state: MindMapState, newDocument: MindMapDocument) => {
     document: newDocument,
     canUndo: true,
     canRedo: false,
+    isDirty: true
   };
 };
 
@@ -111,6 +120,35 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
   canUndo: false,
   canRedo: false,
   connectingSourceId: null,
+
+  markHistoryAsSaved: () => {
+    set({
+      isDirty: false, // 🌟 保存されたので未保存フラグを下ろす
+    });
+  },
+  isDirty: false,
+
+  dragStartDocument: null,
+
+  // 🌟 ドラッグ開始時に、その時点のドキュメントを保持する
+  startDrag: () => set((state) => ({ dragStartDocument: state.document })),
+
+  // 🌟 ドラッグ終了時に、開始時から位置が変わっていれば1回だけ履歴に積む
+  endDrag: () => set((state) => {
+    if (!state.dragStartDocument) return {};
+
+    const hasChanged = JSON.stringify(state.dragStartDocument) !== JSON.stringify(state.document);
+    if (!hasChanged) return { dragStartDocument: null };
+
+    return {
+      past: [...state.past, state.dragStartDocument],
+      future: [],
+      canUndo: true,
+      canRedo: false,
+      isDirty: true,
+      dragStartDocument: null,
+    };
+  }),
 
   setConnectingSourceId: (id: string | null) => set({ connectingSourceId: id }),
   setSelectedNodeIds: (ids: string[]) => set({ selectedNodeIds: ids }),
@@ -387,6 +425,7 @@ export const useMindMapStore = create<MindMapState>((set, get) => ({
       future: [],
       canUndo: false,
       canRedo: false,
+      isDirty: false,
     });
   },
 

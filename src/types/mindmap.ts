@@ -116,6 +116,7 @@ export interface MindMapDocument {
     createdAt: string;
     updatedAt: string;
     version: string;
+    savedAs: string | null;
   };
   schema: {
     topicColumns: ColumnDefinition[];

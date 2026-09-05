@@ -50,6 +50,12 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     setIsLayoutMenuOpen(false);
   };
 
+  // ストアからUndo/Redoのアクションと状態を取得
+  const undo = useMindMapStore((state) => state.undo);
+  const redo = useMindMapStore((state) => state.redo);
+  const canUndo = useMindMapStore((state) => state.canUndo);
+  const canRedo = useMindMapStore((state) => state.canRedo);
+
   return (
     <div className="absolute top-16 left-3 right-3 z-40 pointer-events-none max-w-xl mx-auto">
       {/* 
@@ -186,6 +192,35 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             </div>
 
           </div>
+
+          <div className="w-[1px] h-5 bg-gray-200 mx-1" />
+            {/* Undoボタン */}
+            <button
+              onClick={undo}
+              disabled={!canUndo}
+              title="元に戻す (Ctrl+Z)"
+              className={`p-2 rounded-lg text-sm font-medium transition ${
+                canUndo
+                  ? 'hover:bg-gray-100 text-gray-700'
+                  : 'text-gray-300 cursor-not-allowed'
+              }`}
+            >
+              ↩️
+            </button>
+
+            {/* Redoボタン */}
+            <button
+              onClick={redo}
+              disabled={!canRedo}
+              title="やり直し (Ctrl+Y / Ctrl+Shift+Z)"
+              className={`p-2 rounded-lg text-sm font-medium transition ${
+                canRedo
+                  ? 'hover:bg-gray-100 text-gray-700'
+                  : 'text-gray-300 cursor-not-allowed'
+              }`}
+            >
+              ↪️
+            </button>
         </div>
       </div>
     </div>

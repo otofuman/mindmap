@@ -38,7 +38,7 @@ export const NodeMenu: React.FC<NodeMenuProps> = ({
         }}
         className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition"
       >
-        詳細編集
+        ⚙詳細編集
       </button>
 
       <button
@@ -48,7 +48,7 @@ export const NodeMenu: React.FC<NodeMenuProps> = ({
         }}
         className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition"
       >
-        スタイルの変更
+        🎨スタイルの変更
       </button>
 
       <button
@@ -56,7 +56,7 @@ export const NodeMenu: React.FC<NodeMenuProps> = ({
           onAddChild(target.id);
           onClose();
         }}
-        className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition flex items-center gap-1.5"
+        className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-white bg-gray-600 hover:bg-gray-700 rounded-lg transition flex items-center gap-1.5"
       >
         子を追加
       </button>
@@ -66,7 +66,7 @@ export const NodeMenu: React.FC<NodeMenuProps> = ({
           onConnect(target.id);
           onClose();
         }}
-        className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition"
+        className="w-full text-left px-2.5 py-1.5 text-xs font-medium text-white bg-blue-900 hover:bg-gray-100 rounded-lg transition"
       >
         接続を追加
       </button>

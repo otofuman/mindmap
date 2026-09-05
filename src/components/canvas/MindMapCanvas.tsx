@@ -19,7 +19,7 @@ import { Toolbar } from './Toolbar';
 import { NodeMenu } from './NodeMenu';
 import { EdgeMenu } from './EdgeMenu';
 import { useMindMapStore } from '../../store/useMindMapStore';
-import type { MindMapDocument } from '../../types/mindmap';
+// import type { MindMapDocument } from '../../types/mindmap';
 import type { ConnectionType } from '../../types/mindmap';
 
 import { EditNodeModal } from '../modals/EditNodeModal';
@@ -27,6 +27,8 @@ import { StyleNodeModal } from '../modals/StyleNodeModal';
 
 import { calculateNodeDimensions } from '../../utils/nodeSizeUtils';
 import { getNewTopicName } from '../../utils/nameUtils';
+
+import { exportJSON, importJSON } from '../../utils/fileio';
 
 const nodeTypes = {
   mindMapNode: MindMapNode,
@@ -43,6 +45,9 @@ const MindMapCanvasContent: React.FC = () => {
   const connectingSourceId = useMindMapStore((state) => state.connectingSourceId);
   const setConnectingSourceId = useMindMapStore((state) => state.setConnectingSourceId);
   const handleNodeTapForConnect = useMindMapStore((state) => state.handleNodeTapForConnect);
+
+  // 呼び出し側の例
+  const markHistoryAsSaved = useMindMapStore((state) => state.markHistoryAsSaved);
 
   const onNodesChange = useMindMapStore((state) => state.onNodesChange);
   const onEdgesChange = useMindMapStore((state) => state.onEdgesChange);
@@ -62,6 +67,7 @@ const MindMapCanvasContent: React.FC = () => {
 
   const updateConnectionType = useMindMapStore((state) => state.updateConnectionType);
   const deleteConnection = useMindMapStore((state) => state.deleteConnection);
+  
 
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [nodeMenuTarget, setNodeMenuTarget] = useState<{ id: string; x: number; y: number } | null>(null);
@@ -264,46 +270,10 @@ const MindMapCanvasContent: React.FC = () => {
     setTimeout(() => fitView({ duration: 300 }), 50);
   }, [autoLayout, fitView]);
 
-  const handleExportJSON = useCallback(() => {
-    const currentMapTitle = mapDocument.meta.title || 'mindmap';
-    const inputFileName = window.prompt('保存するファイル名を入力してください:', currentMapTitle);
-    if (inputFileName === null) return;
-
-    const sanitizedTitle = inputFileName.trim() || currentMapTitle;
-    const fileName = sanitizedTitle.endsWith('.json') ? sanitizedTitle : `${sanitizedTitle}.json`;
-
-    const jsonString = JSON.stringify(mapDocument, null, 2);
-    const blob = new Blob([jsonString], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = window.document.createElement('a');
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [mapDocument]);
+  const handleExportJSON = useCallback(() => { exportJSON(mapDocument, markHistoryAsSaved); }, [mapDocument]);
 
   const handleImportJSON = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const parsed = JSON.parse(event.target?.result as string) as MindMapDocument;
-          if (parsed.topics && parsed.connections && parsed.topicDisplays) {
-            loadDocument(parsed);
-            setTimeout(() => fitView({ duration: 300 }), 50);
-          } else {
-            alert('無効なフォーマットです。');
-          }
-        } catch (err) {
-          alert('ファイルの読み込みに失敗しました。');
-        }
-      };
-      reader.readAsText(file);
-      e.target.value = '';
-    },
+    (e: React.ChangeEvent<HTMLInputElement>) => { importJSON(e, loadDocument, fitView); },
     [loadDocument, fitView]
   );
 
