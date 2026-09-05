@@ -170,6 +170,18 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                     </div>
                   </button>
 
+                  <button
+                    type="button"
+                    onClick={() => handleSelectLayout('cluster')}
+                    className="w-full text-left px-3.5 py-2 hover:bg-blue-50 hover:text-blue-600 flex items-center gap-2 transition cursor-pointer"
+                  >
+                    <span>＊</span>
+                    <div>
+                      <div className="font-medium">クラスター</div>
+                      <div className="text-[10px] text-gray-400">まとまりを維持</div>
+                    </div>
+                  </button>
+
                   {customLists.length > 0 && (
                     <>
                       <div className="my-1 border-t border-gray-100" />
